@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>#つながる# - Quick Call</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+
+        .app-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .app-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .app-header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+            animation: slideUp 0.5s ease;
+        }
+
+        .user-id-section {
+            background: #f7f7f7;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .user-id {
+            font-family: monospace;
+            font-size: 1.2em;
+            color: #667eea;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .add-contact-section {
+            margin-bottom: 25px;
+        }
+
+        .add-contact-section h3 {
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .add-btn {
+            background: #764ba2;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.4);
+        }
+
+        .favorites-section h3 {
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        .favorites-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .favorite-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .favorite-card::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .favorite-card:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .favorite-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .favorite-card .icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .favorite-card .name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .favorite-card .status {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .call-panel {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 1000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .call-panel.active {
+            display: flex;
+        }
+
+        .calling-info {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .calling-info h2 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .call-status {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .call-timer {
+            font-size: 1.5em;
+            margin-top: 20px;
+            font-family: monospace;
+        }
+
+        .call-controls {
+            display: flex;
+            gap: 20px;
+        }
+
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .mute-btn {
+            background: #4a5568;
+            color: white;
+        }
+
+        .mute-btn.active {
+            background: #e53e3e;
+        }
+
+        .speaker-btn {
+            background: #4a5568;
+            color: white;
+        }
+
+        .speaker-btn.active {
+            background: #48bb78;
+        }
+
+        .record-btn {
+            background: #4a5568;
+            color: white;
+        }
+
+        .record-btn.active {
+            background: #ed8936;
+            animation: pulse 1.5s infinite;
+        }
+
+        .end-call-btn {
+            background: #e53e3e;
+            color: white;
+        }
+
+        .incoming-call {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            z-index: 2000;
+            text-align: center;
+            animation: shake 0.5s;
+        }
+
+        .incoming-call.active {
+            display: block;
+        }
+
+        .incoming-call h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .incoming-call-actions {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .accept-btn {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+        }
+
+        .reject-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+            25% { transform: translate(-50%, -50%) rotate(-5deg); }
+            75% { transform: translate(-50%, -50%) rotate(5deg); }
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #48bb78;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            transform: translateX(400px);
+            transition: transform 0.3s;
+            z-index: 3000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-header">
+        <h1>#つながる#</h1>
+        <p>大切な人とすぐつながる</p>
+    </div>
+
+    <div class="main-container">
+        <div class="user-id-section">
+            <strong>あなたのID:</strong>
+            <div class="user-id" id="userId">生成中...</div>
+            <button class="copy-btn" onclick="copyUserId()">📋 コピー</button>
+        </div>
+
+        <div class="add-contact-section">
+            <h3>連絡先を追加</h3>
+            <div class="input-group">
+                <input type="text" id="contactName" placeholder="名前">
+                <input type="text" id="contactId" placeholder="相手のID">
+            </div>
+            <button class="add-btn" onclick="addContact()">追加</button>
+        </div>
+
+        <div class="favorites-section">
+            <h3>お気に入り</h3>
+            <div class="favorites-grid" id="favoritesGrid">
+                <!-- 動的に追加される -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 通話パネル -->
+    <div class="call-panel" id="callPanel">
+        <div class="calling-info">
+            <h2 id="callingName">通話中...</h2>
+            <div class="call-status" id="callStatus">接続中...</div>
+            <div class="call-timer" id="callTimer">00:00</div>
+        </div>
+        <div class="call-controls">
+            <button class="control-btn mute-btn" id="muteBtn" onclick="toggleMute()">
+                🎤
+            </button>
+            <button class="control-btn speaker-btn" id="speakerBtn" onclick="toggleSpeaker()">
+                🔊
+            </button>
+            <button class="control-btn record-btn" id="recordBtn" onclick="toggleRecord()">
+                ⏺️
+            </button>
+            <button class="control-btn end-call-btn" onclick="endCall()">
+                📞
+            </button>
+        </div>
+    </div>
+
+    <!-- 着信画面 -->
+    <div class="incoming-call" id="incomingCall">
+        <h3 id="callerName">着信中...</h3>
+        <div class="incoming-call-actions">
+            <button class="accept-btn" onclick="acceptCall()">応答</button>
+            <button class="reject-btn" onclick="rejectCall()">拒否</button>
+        </div>
+    </div>
+
+    <!-- 通知 -->
+    <div class="notification" id="notification"></div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // Firebase設定（実際の値に置き換えてください）
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // 開発用のモックモード（Firebaseが設定されていない場合）
+        let mockMode = firebaseConfig.apiKey === "YOUR_API_KEY";
+        let database = null;
+        
+        if (!mockMode) {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+        }
+
+        // グローバル変数
+        let userId = null;
+        let localStream = null;
+        let remoteStream = null;
+        let peerConnection = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let callTimer = null;
+        let callStartTime = null;
+        let currentCall = null;
+        let contacts = [];
+
+        // ユーザーID生成
+        function generateUserId() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let id = '';
+            for (let i = 0; i < 8; i++) {
+                id += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return id;
+        }
+
+        // 初期化
+        function init() {
+            userId = localStorage.getItem('userId');
+            if (!userId) {
+                userId = generateUserId();
+                localStorage.setItem('userId', userId);
+            }
+            document.getElementById('userId').textContent = userId;
+
+            // 保存された連絡先を読み込み
+            const savedContacts = localStorage.getItem('contacts');
+            if (savedContacts) {
+                contacts = JSON.parse(savedContacts);
+                renderContacts();
+            }
+
+            // Firebase リスナー設定（モックモードでない場合）
+            if (!mockMode && database) {
+                listenForCalls();
+            }
+
+            // 通知許可をリクエスト
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+
+        // ユーザーIDコピー
+        function copyUserId() {
+            navigator.clipboard.writeText(userId).then(() => {
+                showNotification('IDをコピーしました！');
+            });
+        }
+
+        // 連絡先追加
+        function addContact() {
+            const name = document.getElementById('contactName').value.trim();
+            const contactId = document.getElementById('contactId').value.trim();
+
+            if (!name || !contactId) {
+                showNotification('名前とIDを入力してください', 'error');
+                return;
+            }
+
+            contacts.push({ name, id: contactId });
+            localStorage.setItem('contacts', JSON.stringify(contacts));
+            
+            document.getElementById('contactName').value = '';
+            document.getElementById('contactId').value = '';
+            
+            renderContacts();
+            showNotification(`${name}さんを追加しました！`);
+        }
+
+        // 連絡先表示
+        function renderContacts() {
+            const grid = document.getElementById('favoritesGrid');
+            grid.innerHTML = '';
+
+            contacts.forEach((contact, index) => {
+                const card = document.createElement('div');
+                card.className = 'favorite-card';
+                card.onclick = () => startCall(contact);
+                card.innerHTML = `
+                    <div class="icon">👤</div>
+                    <div class="name">${contact.name}</div>
+                    <div class="status">タップして発信</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // 通話開始
+        async function startCall(contact) {
+            currentCall = contact;
+            
+            // 通話画面表示
+            document.getElementById('callPanel').classList.add('active');
+            document.getElementById('callingName').textContent = `${contact.name}に発信中...`;
+            document.getElementById('callStatus').textContent = '呼び出し中...';
+
+            try {
+                // メディア取得
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: true, 
+                    video: false 
+                });
+
+                if (mockMode) {
+                    // モックモード：3秒後に自動接続
+                    setTimeout(() => {
+                        document.getElementById('callStatus').textContent = '通話中';
+                        startCallTimer();
+                        showNotification(`${contact.name}と通話開始しました`);
+                    }, 3000);
+                } else {
+                    // WebRTC接続を開始
+                    setupPeerConnection();
+                    // Firebaseにオファーを送信
+                    sendOffer(contact.id);
+                }
+            } catch (error) {
+                console.error('メディア取得エラー:', error);
+                showNotification('マイクへのアクセスが必要です', 'error');
+                endCall();
+            }
+        }
+
+        // WebRTC設定
+        function setupPeerConnection() {
+            const configuration = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' }
+                ]
+            };
+
+            peerConnection = new RTCPeerConnection(configuration);
+
+            // ローカルストリームを追加
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+
+            // リモートストリーム受信
+            peerConnection.ontrack = (event) => {
+                remoteStream = event.streams[0];
+                // オーディオ要素で再生
+                const audio = new Audio();
+                audio.srcObject = remoteStream;
+                audio.play();
+            };
+
+            // ICE候補
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate && !mockMode) {
+                    // FirebaseにICE候補を送信
+                    database.ref(`calls/${currentCall.id}/ice-candidates/${userId}`).push(event.candidate);
+                }
+            };
+        }
+
+        // オファー送信（実際のFirebase実装用）
+        async function sendOffer(targetId) {
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            if (!mockMode && database) {
+                database.ref(`calls/${targetId}/offer`).set({
+                    from: userId,
+                    fromName: 'ユーザー',
+                    offer: offer,
+                    timestamp: Date.now()
+                });
+            }
+        }
+
+        // 着信リスナー（実際のFirebase実装用）
+        function listenForCalls() {
+            if (mockMode || !database) return;
+
+            database.ref(`calls/${userId}/offer`).on('value', async (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    // 着信表示
+                    document.getElementById('incomingCall').classList.add('active');
+                    document.getElementById('callerName').textContent = `${data.fromName}から着信`;
+                    
+                    // 通知
+                    if (Notification.permission === 'granted') {
+                        new Notification('着信', {
+                            body: `${data.fromName}から着信があります`,
+                            icon: '📞'
+                        });
+                    }
+
+                    // 着信音を鳴らす（実装は省略）
+                    playRingtone();
+                }
+            });
+        }
+
+        // 通話タイマー
+        function startCallTimer() {
+            callStartTime = Date.now();
+            callTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                document.getElementById('callTimer').textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        // ミュート切り替え
+        function toggleMute() {
+            const btn = document.getElementById('muteBtn');
+            if (localStream) {
+                const audioTrack = localStream.getAudioTracks()[0];
+                audioTrack.enabled = !audioTrack.enabled;
+                btn.classList.toggle('active');
+                showNotification(audioTrack.enabled ? 'ミュート解除' : 'ミュート');
+            }
+        }
+
+        // スピーカー切り替え
+        function toggleSpeaker() {
+            const btn = document.getElementById('speakerBtn');
+            btn.classList.toggle('active');
+            showNotification(btn.classList.contains('active') ? 'スピーカーON' : 'スピーカーOFF');
+        }
+
+        // 録音切り替え
+        function toggleRecord() {
+            const btn = document.getElementById('recordBtn');
+            
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                startRecording();
+                btn.classList.add('active');
+                showNotification('録音開始');
+            } else {
+                stopRecording();
+                btn.classList.remove('active');
+                showNotification('録音停止');
+            }
+        }
+
+        // 録音開始
+        function startRecording() {
+            if (!localStream) return;
+
+            recordedChunks = [];
+            mediaRecorder = new MediaRecorder(localStream);
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `recording_${Date.now()}.webm`;
+                a.click();
+            };
+
+            mediaRecorder.start();
+        }
+
+        // 録音停止
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+        }
+
+        // 通話終了
+        function endCall() {
+            // タイマー停止
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
+            }
+
+            // 録音停止
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                stopRecording();
+            }
+
+            // ストリーム停止
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+
+            // WebRTC接続終了
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            // UI更新
+            document.getElementById('callPanel').classList.remove('active');
+            document.getElementById('muteBtn').classList.remove('active');
+            document.getElementById('speakerBtn').classList.remove('active');
+            document.getElementById('recordBtn').classList.remove('active');
+            
+            currentCall = null;
+        }
+
+        // 着信応答
+        function acceptCall() {
+            document.getElementById('incomingCall').classList.remove('active');
+            // 実際の実装では、ここでWebRTC接続を確立
+            showNotification('通話を開始しました');
+        }
+
+        // 着信拒否
+        function rejectCall() {
+            document.getElementById('incomingCall').classList.remove('active');
+            showNotification('着信を拒否しました');
+        }
+
+        // 着信音（ダミー）
+        function playRingtone() {
+            // 実際の実装では音声ファイルを再生
+            console.log('♪ 着信音再生中...');
+        }
+
+        // 通知表示
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.background = type === 'error' ? '#e53e3e' : '#48bb78';
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // 初期化実行
+        init();
+    </script>
+</body>
+</html>
