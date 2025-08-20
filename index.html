@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>#つながる# - Quick Call</title>
     <style>
         * {
@@ -13,179 +13,293 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 50%, #45B7D1 100%);
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
             padding: 20px;
-            color: #333;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            animation: float 20s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-50px, -50px) rotate(360deg); }
+        }
+
+        .app-container {
+            max-width: 400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
         }
 
         .app-header {
             text-align: center;
-            color: white;
             margin-bottom: 30px;
-            animation: fadeIn 0.5s ease;
+            animation: bounceIn 0.6s;
         }
 
-        .app-header h1 {
+        .app-title {
             font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 5px;
+            letter-spacing: -1px;
         }
 
-        .app-header p {
-            opacity: 0.9;
-            font-size: 1.1em;
+        .app-subtitle {
+            color: white;
+            font-size: 0.9em;
+            font-weight: 500;
+            opacity: 0.95;
         }
 
-        .main-container {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 500px;
-            width: 100%;
-            animation: slideUp 0.5s ease;
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            animation: slideUp 0.5s ease-out;
         }
 
-        .user-id-section {
-            background: #f7f7f7;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 25px;
+        .user-id-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .user-id-card::before {
+            content: '🎯';
+            position: absolute;
+            font-size: 100px;
+            opacity: 0.1;
+            right: -20px;
+            top: -20px;
+            animation: rotate 10s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .user-id-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 8px;
         }
 
         .user-id {
-            font-family: monospace;
-            font-size: 1.2em;
-            color: #667eea;
+            font-family: 'Courier New', monospace;
+            font-size: 1.8em;
+            font-weight: bold;
+            letter-spacing: 2px;
             margin: 10px 0;
-            word-break: break-all;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
 
         .copy-btn {
-            background: #667eea;
+            background: rgba(255,255,255,0.3);
             color: white;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 20px;
+            border: 2px solid rgba(255,255,255,0.5);
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
+            font-size: 0.9em;
+            position: relative;
+            z-index: 1;
         }
 
         .copy-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            background: rgba(255,255,255,0.4);
+            transform: scale(1.05);
         }
 
-        .add-contact-section {
-            margin-bottom: 25px;
+        .add-contact-card {
+            background: white;
         }
 
-        .add-contact-section h3 {
+        .section-title {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #333;
             margin-bottom: 15px;
-            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: '➕';
+            font-size: 1.2em;
         }
 
         .input-group {
             display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 15px;
         }
 
-        .input-group input {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
+        .input-field {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #f0f0f0;
+            border-radius: 16px;
             font-size: 1em;
-            transition: border-color 0.3s;
+            transition: all 0.3s;
+            background: #fafafa;
         }
 
-        .input-group input:focus {
+        .input-field:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #4ECDC4;
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(78,205,196,0.2);
         }
 
         .add-btn {
-            background: #764ba2;
+            width: 100%;
+            background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);
             color: white;
             border: none;
-            padding: 12px 30px;
-            border-radius: 10px;
-            cursor: pointer;
+            padding: 14px;
+            border-radius: 16px;
             font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
             transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .add-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.4);
+            box-shadow: 0 6px 20px rgba(78,205,196,0.4);
         }
 
-        .favorites-section h3 {
+        .favorites-section {
+            background: white;
+        }
+
+        .favorites-title {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #333;
             margin-bottom: 20px;
-            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .favorites-title::before {
+            content: '⭐';
+            font-size: 1.2em;
         }
 
         .favorites-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 15px;
-            margin-bottom: 30px;
         }
 
-        .favorite-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .contact-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             padding: 20px;
-            border-radius: 15px;
+            border-radius: 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
             position: relative;
             overflow: hidden;
+            color: white;
         }
 
-        .favorite-card::before {
+        .contact-card:nth-child(2n) {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .contact-card:nth-child(3n) {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .contact-card:nth-child(4n) {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .contact-card::before {
             content: '';
             position: absolute;
             top: 50%;
             left: 50%;
             width: 0;
             height: 0;
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255,255,255,0.3);
             border-radius: 50%;
             transform: translate(-50%, -50%);
             transition: width 0.6s, height 0.6s;
         }
 
-        .favorite-card:hover::before {
-            width: 300px;
-            height: 300px;
+        .contact-card:hover::before {
+            width: 200px;
+            height: 200px;
         }
 
-        .favorite-card:hover {
-            transform: translateY(-5px);
+        .contact-card:hover {
+            transform: translateY(-5px) scale(1.05);
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
-        .favorite-card .icon {
-            font-size: 2em;
+        .contact-icon {
+            font-size: 2.5em;
             margin-bottom: 10px;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
         }
 
-        .favorite-card .name {
-            font-weight: bold;
+        .contact-name {
+            font-weight: 700;
+            font-size: 1.1em;
             margin-bottom: 5px;
         }
 
-        .favorite-card .status {
-            font-size: 0.9em;
+        .contact-status {
+            font-size: 0.85em;
             opacity: 0.9;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+            opacity: 0.5;
         }
 
         .call-panel {
@@ -207,30 +321,48 @@
             display: flex;
         }
 
-        .calling-info {
-            text-align: center;
-            margin-bottom: 40px;
+        .calling-avatar {
+            width: 120px;
+            height: 120px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
         }
 
-        .calling-info h2 {
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .calling-name {
             font-size: 2em;
+            font-weight: 700;
             margin-bottom: 10px;
         }
 
         .call-status {
-            font-size: 1.2em;
+            font-size: 1.1em;
             opacity: 0.9;
+            margin-bottom: 20px;
         }
 
         .call-timer {
-            font-size: 1.5em;
-            margin-top: 20px;
-            font-family: monospace;
+            font-size: 2em;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 40px;
+            font-weight: 300;
         }
 
         .call-controls {
             display: flex;
             gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         .control-btn {
@@ -240,10 +372,11 @@
             border: none;
             cursor: pointer;
             transition: all 0.3s;
+            font-size: 1.8em;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5em;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
 
         .control-btn:hover {
@@ -251,7 +384,7 @@
         }
 
         .mute-btn {
-            background: #4a5568;
+            background: rgba(255,255,255,0.2);
             color: white;
         }
 
@@ -260,7 +393,7 @@
         }
 
         .speaker-btn {
-            background: #4a5568;
+            background: rgba(255,255,255,0.2);
             color: white;
         }
 
@@ -269,18 +402,25 @@
         }
 
         .record-btn {
-            background: #4a5568;
+            background: rgba(255,255,255,0.2);
             color: white;
         }
 
         .record-btn.active {
             background: #ed8936;
-            animation: pulse 1.5s infinite;
+            animation: recording 1.5s infinite;
+        }
+
+        @keyframes recording {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
 
         .end-call-btn {
             background: #e53e3e;
             color: white;
+            width: 80px;
+            height: 80px;
         }
 
         .incoming-call {
@@ -290,11 +430,12 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background: white;
-            padding: 30px;
-            border-radius: 20px;
+            padding: 40px 30px;
+            border-radius: 24px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             z-index: 2000;
             text-align: center;
+            min-width: 320px;
             animation: shake 0.5s;
         }
 
@@ -302,40 +443,75 @@
             display: block;
         }
 
-        .incoming-call h3 {
-            margin-bottom: 20px;
-            color: #333;
+        @keyframes shake {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+            25% { transform: translate(-50%, -50%) rotate(-3deg); }
+            75% { transform: translate(-50%, -50%) rotate(3deg); }
         }
 
-        .incoming-call-actions {
+        .incoming-avatar {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
             display: flex;
-            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            margin: 0 auto 20px;
+            animation: pulse 1s infinite;
+        }
+
+        .incoming-name {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .incoming-actions {
+            display: flex;
+            gap: 15px;
             justify-content: center;
         }
 
-        .accept-btn {
-            background: #48bb78;
-            color: white;
+        .accept-btn, .reject-btn {
+            padding: 15px 35px;
             border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
+            border-radius: 50px;
+            font-size: 1em;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 1.1em;
+            transition: all 0.3s;
+        }
+
+        .accept-btn {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
         }
 
         .reject-btn {
-            background: #e53e3e;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 1.1em;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            color: #333;
+            padding: 15px 25px;
+            border-radius: 50px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            transform: translateX(400px);
+            transition: transform 0.3s;
+            z-index: 3000;
+            font-weight: 600;
+        }
+
+        .notification.show {
+            transform: translateX(0);
         }
 
         @keyframes slideUp {
@@ -349,74 +525,53 @@
             }
         }
 
-        @keyframes shake {
-            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
-            25% { transform: translate(-50%, -50%) rotate(-5deg); }
-            75% { transform: translate(-50%, -50%) rotate(5deg); }
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #48bb78;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-            transform: translateX(400px);
-            transition: transform 0.3s;
-            z-index: 3000;
-        }
-
-        .notification.show {
-            transform: translateX(0);
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
         }
     </style>
 </head>
 <body>
-    <div class="app-header">
-        <h1>#つながる#</h1>
-        <p>大切な人とすぐつながる</p>
-    </div>
+    <div class="app-container">
+        <div class="app-header">
+            <h1 class="app-title">#つながる#</h1>
+            <p class="app-subtitle">大切な人とワンタップで</p>
+        </div>
 
-    <div class="main-container">
-        <div class="user-id-section">
-            <strong>あなたのID:</strong>
+        <div class="glass-card user-id-card">
+            <div class="user-id-label">あなたのID</div>
             <div class="user-id" id="userId">生成中...</div>
-            <button class="copy-btn" onclick="copyUserId()">📋 コピー</button>
+            <button class="copy-btn" onclick="copyUserId()">📋 IDをコピー</button>
         </div>
 
-        <div class="add-contact-section">
-            <h3>連絡先を追加</h3>
+        <div class="glass-card add-contact-card">
+            <h3 class="section-title">友達を追加</h3>
             <div class="input-group">
-                <input type="text" id="contactName" placeholder="名前">
-                <input type="text" id="contactId" placeholder="相手のID">
+                <input type="text" id="contactName" class="input-field" placeholder="ニックネーム" autocomplete="off">
+                <input type="text" id="contactId" class="input-field" placeholder="相手のID" autocomplete="off">
             </div>
-            <button class="add-btn" onclick="addContact()">追加</button>
+            <button class="add-btn" onclick="addContact()">追加する</button>
         </div>
 
-        <div class="favorites-section">
-            <h3>お気に入り</h3>
+        <div class="glass-card favorites-section">
+            <h3 class="favorites-title">スピードダイヤル</h3>
             <div class="favorites-grid" id="favoritesGrid">
-                <!-- 動的に追加される -->
+                <div class="empty-state">
+                    <div class="empty-state-icon">📱</div>
+                    <p>友達を追加してワンタップ通話！</p>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- 通話パネル -->
     <div class="call-panel" id="callPanel">
-        <div class="calling-info">
-            <h2 id="callingName">通話中...</h2>
-            <div class="call-status" id="callStatus">接続中...</div>
-            <div class="call-timer" id="callTimer">00:00</div>
-        </div>
+        <div class="calling-avatar">📞</div>
+        <div class="calling-name" id="callingName">通話中...</div>
+        <div class="call-status" id="callStatus">接続中...</div>
+        <div class="call-timer" id="callTimer">00:00</div>
         <div class="call-controls">
             <button class="control-btn mute-btn" id="muteBtn" onclick="toggleMute()">
                 🎤
@@ -428,15 +583,16 @@
                 ⏺️
             </button>
             <button class="control-btn end-call-btn" onclick="endCall()">
-                📞
+                ☎️
             </button>
         </div>
     </div>
 
     <!-- 着信画面 -->
     <div class="incoming-call" id="incomingCall">
-        <h3 id="callerName">着信中...</h3>
-        <div class="incoming-call-actions">
+        <div class="incoming-avatar">📞</div>
+        <div class="incoming-name" id="callerName">着信中...</div>
+        <div class="incoming-actions">
             <button class="accept-btn" onclick="acceptCall()">応答</button>
             <button class="reject-btn" onclick="rejectCall()">拒否</button>
         </div>
@@ -517,12 +673,18 @@
             if ('Notification' in window && Notification.permission === 'default') {
                 Notification.requestPermission();
             }
+
+            // モックモードの警告
+            if (mockMode) {
+                console.log('⚠️ モックモードで動作中 - 実際の通話機能は動作しません');
+                console.log('Firebaseを設定して本番モードで使用してください');
+            }
         }
 
         // ユーザーIDコピー
         function copyUserId() {
             navigator.clipboard.writeText(userId).then(() => {
-                showNotification('IDをコピーしました！');
+                showNotification('IDをコピーしました！ 📋');
             });
         }
 
@@ -532,7 +694,18 @@
             const contactId = document.getElementById('contactId').value.trim();
 
             if (!name || !contactId) {
-                showNotification('名前とIDを入力してください', 'error');
+                showNotification('入力してください 😅', 'error');
+                return;
+            }
+
+            if (contactId === userId) {
+                showNotification('自分は追加できません 😂', 'error');
+                return;
+            }
+
+            // 重複チェック
+            if (contacts.some(c => c.id === contactId)) {
+                showNotification('すでに追加済みです 🤔', 'error');
                 return;
             }
 
@@ -543,22 +716,32 @@
             document.getElementById('contactId').value = '';
             
             renderContacts();
-            showNotification(`${name}さんを追加しました！`);
+            showNotification(`${name}を追加しました！ 🎉`);
         }
 
         // 連絡先表示
         function renderContacts() {
             const grid = document.getElementById('favoritesGrid');
-            grid.innerHTML = '';
+            
+            if (contacts.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-state-icon">📱</div>
+                        <p>友達を追加してワンタップ通話！</p>
+                    </div>
+                `;
+                return;
+            }
 
+            grid.innerHTML = '';
             contacts.forEach((contact, index) => {
                 const card = document.createElement('div');
-                card.className = 'favorite-card';
+                card.className = 'contact-card';
                 card.onclick = () => startCall(contact);
                 card.innerHTML = `
-                    <div class="icon">👤</div>
-                    <div class="name">${contact.name}</div>
-                    <div class="status">タップして発信</div>
+                    <div class="contact-icon">👤</div>
+                    <div class="contact-name">${contact.name}</div>
+                    <div class="contact-status">タップで発信</div>
                 `;
                 grid.appendChild(card);
             });
@@ -570,7 +753,7 @@
             
             // 通話画面表示
             document.getElementById('callPanel').classList.add('active');
-            document.getElementById('callingName').textContent = `${contact.name}に発信中...`;
+            document.getElementById('callingName').textContent = `${contact.name}`;
             document.getElementById('callStatus').textContent = '呼び出し中...';
 
             try {
@@ -582,10 +765,11 @@
 
                 if (mockMode) {
                     // モックモード：3秒後に自動接続
+                    showNotification(`${contact.name}に発信中... 📞`);
                     setTimeout(() => {
                         document.getElementById('callStatus').textContent = '通話中';
                         startCallTimer();
-                        showNotification(`${contact.name}と通話開始しました`);
+                        showNotification(`${contact.name}と通話開始！ 🎉`);
                     }, 3000);
                 } else {
                     // WebRTC接続を開始
@@ -595,7 +779,7 @@
                 }
             } catch (error) {
                 console.error('メディア取得エラー:', error);
-                showNotification('マイクへのアクセスが必要です', 'error');
+                showNotification('マイクへのアクセスが必要です 🎤', 'error');
                 endCall();
             }
         }
@@ -691,7 +875,7 @@
                 const audioTrack = localStream.getAudioTracks()[0];
                 audioTrack.enabled = !audioTrack.enabled;
                 btn.classList.toggle('active');
-                showNotification(audioTrack.enabled ? 'ミュート解除' : 'ミュート');
+                showNotification(audioTrack.enabled ? 'ミュート解除 🎤' : 'ミュート 🔇');
             }
         }
 
@@ -699,7 +883,7 @@
         function toggleSpeaker() {
             const btn = document.getElementById('speakerBtn');
             btn.classList.toggle('active');
-            showNotification(btn.classList.contains('active') ? 'スピーカーON' : 'スピーカーOFF');
+            showNotification(btn.classList.contains('active') ? 'スピーカーON 🔊' : 'スピーカーOFF 🔈');
         }
 
         // 録音切り替え
@@ -709,11 +893,11 @@
             if (!mediaRecorder || mediaRecorder.state === 'inactive') {
                 startRecording();
                 btn.classList.add('active');
-                showNotification('録音開始');
+                showNotification('録音開始 ⏺️');
             } else {
                 stopRecording();
                 btn.classList.remove('active');
-                showNotification('録音停止');
+                showNotification('録音停止 ⏹️');
             }
         }
 
@@ -779,7 +963,9 @@
             document.getElementById('muteBtn').classList.remove('active');
             document.getElementById('speakerBtn').classList.remove('active');
             document.getElementById('recordBtn').classList.remove('active');
+            document.getElementById('callTimer').textContent = '00:00';
             
+            showNotification('通話を終了しました 👋');
             currentCall = null;
         }
 
@@ -787,13 +973,13 @@
         function acceptCall() {
             document.getElementById('incomingCall').classList.remove('active');
             // 実際の実装では、ここでWebRTC接続を確立
-            showNotification('通話を開始しました');
+            showNotification('通話を開始しました 📞');
         }
 
         // 着信拒否
         function rejectCall() {
             document.getElementById('incomingCall').classList.remove('active');
-            showNotification('着信を拒否しました');
+            showNotification('着信を拒否しました ❌');
         }
 
         // 着信音（ダミー）
@@ -806,7 +992,10 @@
         function showNotification(message, type = 'success') {
             const notification = document.getElementById('notification');
             notification.textContent = message;
-            notification.style.background = type === 'error' ? '#e53e3e' : '#48bb78';
+            notification.style.background = type === 'error' ? 
+                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' : 
+                'white';
+            notification.style.color = type === 'error' ? 'white' : '#333';
             notification.classList.add('show');
             
             setTimeout(() => {
