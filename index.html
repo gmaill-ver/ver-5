@@ -622,8 +622,19 @@
         let database = null;
         
         if (!mockMode) {
-            firebase.initializeApp(firebaseConfig);
-            database = firebase.database();
+            try {
+                firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                console.log('🔥 Firebase初期化成功！');
+                console.log('📡 Database URL:', firebaseConfig.databaseURL);
+            } catch (error) {
+                console.error('Firebase初期化エラー:', error);
+                mockMode = true;
+            }
+        } else {
+            console.log('⚠️ Firebase設定が見つかりません');
+            console.log('Firebase Consoleで設定を取得してください：');
+            console.log('https://console.firebase.google.com/');
         }
 
         // グローバル変数
