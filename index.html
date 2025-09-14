@@ -514,6 +514,27 @@
             transform: translateX(0);
         }
 
+        .status-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 0.85em;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .status-indicator.online {
+            color: #48bb78;
+        }
+
+        .status-indicator.offline {
+            color: #e53e3e;
+        }
+
         @keyframes slideUp {
             from { 
                 opacity: 0;
@@ -530,6 +551,11 @@
             50% { transform: scale(1.05); }
             70% { transform: scale(0.9); }
             100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* リモートオーディオ用の非表示要素 */
+        #remoteAudio {
+            display: none;
         }
     </style>
 </head>
@@ -601,46 +627,35 @@
     <!-- 通知 -->
     <div class="notification" id="notification"></div>
 
+    <!-- ステータス表示 -->
+    <div class="status-indicator" id="statusIndicator">
+        接続状態確認中...
+    </div>
+
+    <!-- リモートオーディオ -->
+    <audio id="remoteAudio" autoplay></audio>
+
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <script>
-        // Firebase設定（実際の値に置き換えてください）
+        // Firebase設定
         const firebaseConfig = {
             apiKey: "AIzaSyB9ALgQy_VTXoMLWQJWZI_fGg6IO4Q5cbw",
             authDomain: "tunagaruyo-28db3.firebaseapp.com",
-            databaseURL: "tunagaruyo-28db3",
-            projectId: "tunagaruyo-28db3.firebasestorage.app",
+            databaseURL: "https://tunagaruyo-28db3-default-rtdb.firebaseio.com", // 修正: 完全なURLに
+            projectId: "tunagaruyo-28db3",
             storageBucket: "tunagaruyo-28db3.firebasestorage.app",
             messagingSenderId: "1012805836840",
             appId: "1:1012805836840:web:73ea7ee307827f3828551d"
         };
 
-        // 開発用のモックモード（Firebaseが設定されていない場合）
-        let mockMode = firebaseConfig.apiKey === "YOUR_API_KEY";
-        let database = null;
-        
-        if (!mockMode) {
-            try {
-                firebase.initializeApp(firebaseConfig);
-                database = firebase.database();
-                console.log('🔥 Firebase初期化成功！');
-                console.log('📡 Database URL:', firebaseConfig.databaseURL);
-            } catch (error) {
-                console.error('Firebase初期化エラー:', error);
-                mockMode = true;
-            }
-        } else {
-            console.log('⚠️ Firebase設定が見つかりません');
-            console.log('Firebase Consoleで設定を取得してください：');
-            console.log('https://console.firebase.google.com/');
-        }
-
         // グローバル変数
         let userId = null;
+        let userName = null;
+        let database = null;
         let localStream = null;
-        let remoteStream = null;
         let peerConnection = null;
         let mediaRecorder = null;
         let recordedChunks = [];
@@ -648,6 +663,32 @@
         let callStartTime = null;
         let currentCall = null;
         let contacts = [];
+        let incomingOffer = null;
+        let iceCandidatesQueue = [];
+
+        // Firebase初期化
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            console.log('🔥 Firebase初期化成功！');
+            updateStatus('online');
+        } catch (error) {
+            console.error('Firebase初期化エラー:', error);
+            updateStatus('offline');
+            alert('Firebase接続エラー。設定を確認してください。');
+        }
+
+        // ステータス更新
+        function updateStatus(status) {
+            const indicator = document.getElementById('statusIndicator');
+            if (status === 'online') {
+                indicator.textContent = '🟢 オンライン';
+                indicator.className = 'status-indicator online';
+            } else {
+                indicator.textContent = '🔴 オフライン';
+                indicator.className = 'status-indicator offline';
+            }
+        }
 
         // ユーザーID生成
         function generateUserId() {
@@ -660,13 +701,17 @@
         }
 
         // 初期化
-        function init() {
+        async function init() {
+            // ユーザーID設定
             userId = localStorage.getItem('userId');
             if (!userId) {
                 userId = generateUserId();
                 localStorage.setItem('userId', userId);
             }
             document.getElementById('userId').textContent = userId;
+
+            // ユーザー名設定
+            userName = localStorage.getItem('userName') || 'ユーザー';
 
             // 保存された連絡先を読み込み
             const savedContacts = localStorage.getItem('contacts');
@@ -675,8 +720,20 @@
                 renderContacts();
             }
 
-            // Firebase リスナー設定（モックモードでない場合）
-            if (!mockMode && database) {
+            // Firebase リスナー設定
+            if (database) {
+                // 自分のプレゼンス設定
+                const presenceRef = database.ref(`presence/${userId}`);
+                presenceRef.set({
+                    online: true,
+                    lastSeen: firebase.database.ServerValue.TIMESTAMP
+                });
+                presenceRef.onDisconnect().set({
+                    online: false,
+                    lastSeen: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                // 着信リスナー
                 listenForCalls();
             }
 
@@ -685,11 +742,12 @@
                 Notification.requestPermission();
             }
 
-            // モックモードの警告
-            if (mockMode) {
-                console.log('⚠️ モックモードで動作中 - 実際の通話機能は動作しません');
-                console.log('Firebaseを設定して本番モードで使用してください');
-            }
+            // ページ離脱時のクリーンアップ
+            window.addEventListener('beforeunload', () => {
+                if (currentCall) {
+                    endCall();
+                }
+            });
         }
 
         // ユーザーIDコピー
@@ -702,7 +760,7 @@
         // 連絡先追加
         function addContact() {
             const name = document.getElementById('contactName').value.trim();
-            const contactId = document.getElementById('contactId').value.trim();
+            const contactId = document.getElementById('contactId').value.trim().toUpperCase();
 
             if (!name || !contactId) {
                 showNotification('入力してください 😅', 'error');
@@ -711,6 +769,11 @@
 
             if (contactId === userId) {
                 showNotification('自分は追加できません 😂', 'error');
+                return;
+            }
+
+            if (contactId.length !== 8) {
+                showNotification('IDは8文字です 📝', 'error');
                 return;
             }
 
@@ -758,8 +821,65 @@
             });
         }
 
-        // 通話開始
+        // WebRTC設定
+        function createPeerConnection() {
+            const configuration = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            };
+
+            peerConnection = new RTCPeerConnection(configuration);
+
+            // ローカルストリームを追加
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+            }
+
+            // リモートストリーム受信
+            peerConnection.ontrack = (event) => {
+                console.log('リモートストリーム受信');
+                const remoteAudio = document.getElementById('remoteAudio');
+                remoteAudio.srcObject = event.streams[0];
+            };
+
+            // ICE候補
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate && currentCall) {
+                    console.log('ICE候補送信');
+                    database.ref(`calls/${currentCall.id}/ice-candidates/${userId}`).push({
+                        candidate: event.candidate.toJSON(),
+                        timestamp: Date.now()
+                    });
+                }
+            };
+
+            // 接続状態監視
+            peerConnection.onconnectionstatechange = () => {
+                console.log('接続状態:', peerConnection.connectionState);
+                if (peerConnection.connectionState === 'connected') {
+                    document.getElementById('callStatus').textContent = '通話中';
+                    startCallTimer();
+                    showNotification('通話接続完了！ 🎉');
+                } else if (peerConnection.connectionState === 'failed') {
+                    showNotification('接続失敗 😢', 'error');
+                    endCall();
+                }
+            };
+
+            return peerConnection;
+        }
+
+        // 通話開始（発信）
         async function startCall(contact) {
+            if (currentCall) {
+                showNotification('すでに通話中です 📞', 'error');
+                return;
+            }
+
             currentCall = contact;
             
             // 通話画面表示
@@ -774,98 +894,175 @@
                     video: false 
                 });
 
-                if (mockMode) {
-                    // モックモード：3秒後に自動接続
-                    showNotification(`${contact.name}に発信中... 📞`);
-                    setTimeout(() => {
-                        document.getElementById('callStatus').textContent = '通話中';
-                        startCallTimer();
-                        showNotification(`${contact.name}と通話開始！ 🎉`);
-                    }, 3000);
-                } else {
-                    // WebRTC接続を開始
-                    setupPeerConnection();
-                    // Firebaseにオファーを送信
-                    sendOffer(contact.id);
-                }
+                // WebRTC接続を開始
+                createPeerConnection();
+
+                // オファー作成
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                // Firebaseにオファーを送信
+                const callRef = database.ref(`calls/${contact.id}`);
+                await callRef.child('offer').set({
+                    from: userId,
+                    fromName: userName,
+                    offer: {
+                        type: offer.type,
+                        sdp: offer.sdp
+                    },
+                    timestamp: Date.now()
+                });
+
+                console.log('オファー送信完了');
+                showNotification(`${contact.name}に発信中... 📞`);
+
+                // アンサー待機
+                waitForAnswer(contact.id);
+
             } catch (error) {
-                console.error('メディア取得エラー:', error);
+                console.error('通話開始エラー:', error);
                 showNotification('マイクへのアクセスが必要です 🎤', 'error');
                 endCall();
             }
         }
 
-        // WebRTC設定
-        function setupPeerConnection() {
-            const configuration = {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' }
-                ]
-            };
-
-            peerConnection = new RTCPeerConnection(configuration);
-
-            // ローカルストリームを追加
-            localStream.getTracks().forEach(track => {
-                peerConnection.addTrack(track, localStream);
-            });
-
-            // リモートストリーム受信
-            peerConnection.ontrack = (event) => {
-                remoteStream = event.streams[0];
-                // オーディオ要素で再生
-                const audio = new Audio();
-                audio.srcObject = remoteStream;
-                audio.play();
-            };
-
-            // ICE候補
-            peerConnection.onicecandidate = (event) => {
-                if (event.candidate && !mockMode) {
-                    // FirebaseにICE候補を送信
-                    database.ref(`calls/${currentCall.id}/ice-candidates/${userId}`).push(event.candidate);
-                }
-            };
-        }
-
-        // オファー送信（実際のFirebase実装用）
-        async function sendOffer(targetId) {
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-
-            if (!mockMode && database) {
-                database.ref(`calls/${targetId}/offer`).set({
-                    from: userId,
-                    fromName: 'ユーザー',
-                    offer: offer,
-                    timestamp: Date.now()
-                });
-            }
-        }
-
-        // 着信リスナー（実際のFirebase実装用）
-        function listenForCalls() {
-            if (mockMode || !database) return;
-
-            database.ref(`calls/${userId}/offer`).on('value', async (snapshot) => {
+        // アンサー待機
+        function waitForAnswer(targetId) {
+            const answerRef = database.ref(`calls/${userId}/answer`);
+            answerRef.on('value', async (snapshot) => {
                 const data = snapshot.val();
-                if (data) {
+                if (data && peerConnection && peerConnection.currentRemoteDescription === null) {
+                    console.log('アンサー受信');
+                    const answer = new RTCSessionDescription(data.answer);
+                    await peerConnection.setRemoteDescription(answer);
+                    
+                    // ICE候補処理
+                    processIceCandidates(targetId);
+                    
+                    // アンサーを削除
+                    answerRef.remove();
+                }
+            });
+        }
+
+        // 着信リスナー
+        function listenForCalls() {
+            const offerRef = database.ref(`calls/${userId}/offer`);
+            offerRef.on('value', async (snapshot) => {
+                const data = snapshot.val();
+                if (data && !currentCall) {
+                    console.log('着信あり:', data);
+                    incomingOffer = data;
+                    
                     // 着信表示
                     document.getElementById('incomingCall').classList.add('active');
-                    document.getElementById('callerName').textContent = `${data.fromName}から着信`;
+                    document.getElementById('callerName').textContent = `${data.fromName || data.from}から着信`;
                     
                     // 通知
                     if (Notification.permission === 'granted') {
                         new Notification('着信', {
-                            body: `${data.fromName}から着信があります`,
+                            body: `${data.fromName || data.from}から着信があります`,
                             icon: '📞'
                         });
                     }
-
-                    // 着信音を鳴らす（実装は省略）
+                    
+                    // 着信音（ビープ音）
                     playRingtone();
                 }
             });
+        }
+
+        // 着信応答
+        async function acceptCall() {
+            if (!incomingOffer) return;
+
+            document.getElementById('incomingCall').classList.remove('active');
+            
+            // 通話相手を設定
+            currentCall = {
+                id: incomingOffer.from,
+                name: incomingOffer.fromName || incomingOffer.from
+            };
+
+            // 通話画面表示
+            document.getElementById('callPanel').classList.add('active');
+            document.getElementById('callingName').textContent = currentCall.name;
+            document.getElementById('callStatus').textContent = '接続中...';
+
+            try {
+                // メディア取得
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: true, 
+                    video: false 
+                });
+
+                // WebRTC接続
+                createPeerConnection();
+
+                // オファー設定
+                const offer = new RTCSessionDescription(incomingOffer.offer);
+                await peerConnection.setRemoteDescription(offer);
+
+                // アンサー作成
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                // アンサー送信
+                await database.ref(`calls/${incomingOffer.from}/answer`).set({
+                    from: userId,
+                    answer: {
+                        type: answer.type,
+                        sdp: answer.sdp
+                    },
+                    timestamp: Date.now()
+                });
+
+                // ICE候補処理
+                processIceCandidates(incomingOffer.from);
+
+                // オファーを削除
+                database.ref(`calls/${userId}/offer`).remove();
+                incomingOffer = null;
+
+                console.log('通話応答完了');
+                showNotification('通話を開始しました 📞');
+
+            } catch (error) {
+                console.error('応答エラー:', error);
+                showNotification('通話開始エラー 😢', 'error');
+                endCall();
+            }
+        }
+
+        // ICE候補処理
+        function processIceCandidates(peerId) {
+            // 相手のICE候補を監視
+            const iceRef = database.ref(`calls/${userId}/ice-candidates/${peerId}`);
+            iceRef.on('child_added', async (snapshot) => {
+                const data = snapshot.val();
+                if (data && peerConnection) {
+                    try {
+                        const candidate = new RTCIceCandidate(data.candidate);
+                        await peerConnection.addIceCandidate(candidate);
+                        console.log('ICE候補追加');
+                    } catch (error) {
+                        console.error('ICE候補追加エラー:', error);
+                    }
+                }
+            });
+        }
+
+        // 着信拒否
+        function rejectCall() {
+            document.getElementById('incomingCall').classList.remove('active');
+            
+            // オファーを削除
+            if (incomingOffer) {
+                database.ref(`calls/${userId}/offer`).remove();
+                incomingOffer = null;
+            }
+            
+            showNotification('着信を拒否しました ❌');
         }
 
         // 通話タイマー
@@ -894,6 +1091,8 @@
         function toggleSpeaker() {
             const btn = document.getElementById('speakerBtn');
             btn.classList.toggle('active');
+            const remoteAudio = document.getElementById('remoteAudio');
+            remoteAudio.volume = btn.classList.contains('active') ? 1.0 : 0.5;
             showNotification(btn.classList.contains('active') ? 'スピーカーON 🔊' : 'スピーカーOFF 🔈');
         }
 
@@ -917,7 +1116,16 @@
             if (!localStream) return;
 
             recordedChunks = [];
-            mediaRecorder = new MediaRecorder(localStream);
+            const options = {
+                mimeType: 'audio/webm;codecs=opus'
+            };
+            
+            try {
+                mediaRecorder = new MediaRecorder(localStream, options);
+            } catch (e) {
+                console.error('MediaRecorder作成エラー:', e);
+                return;
+            }
 
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) {
@@ -932,6 +1140,7 @@
                 a.href = url;
                 a.download = `recording_${Date.now()}.webm`;
                 a.click();
+                URL.revokeObjectURL(url);
             };
 
             mediaRecorder.start();
@@ -969,6 +1178,14 @@
                 peerConnection = null;
             }
 
+            // Firebase データクリーンアップ
+            if (database && currentCall) {
+                // 自分の通話データを削除
+                database.ref(`calls/${userId}`).remove();
+                // 相手の通話データを削除
+                database.ref(`calls/${currentCall.id}`).remove();
+            }
+
             // UI更新
             document.getElementById('callPanel').classList.remove('active');
             document.getElementById('muteBtn').classList.remove('active');
@@ -976,27 +1193,45 @@
             document.getElementById('recordBtn').classList.remove('active');
             document.getElementById('callTimer').textContent = '00:00';
             
-            showNotification('通話を終了しました 👋');
+            // リモートオーディオクリア
+            const remoteAudio = document.getElementById('remoteAudio');
+            remoteAudio.srcObject = null;
+            
+            if (currentCall) {
+                showNotification('通話を終了しました 👋');
+            }
+            
             currentCall = null;
+            incomingOffer = null;
         }
 
-        // 着信応答
-        function acceptCall() {
-            document.getElementById('incomingCall').classList.remove('active');
-            // 実際の実装では、ここでWebRTC接続を確立
-            showNotification('通話を開始しました 📞');
-        }
-
-        // 着信拒否
-        function rejectCall() {
-            document.getElementById('incomingCall').classList.remove('active');
-            showNotification('着信を拒否しました ❌');
-        }
-
-        // 着信音（ダミー）
+        // 着信音（簡易ビープ音）
         function playRingtone() {
-            // 実際の実装では音声ファイルを再生
-            console.log('♪ 着信音再生中...');
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const duration = 0.2;
+            const frequency = 440;
+            
+            function beep() {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+            }
+            
+            // 3回ビープ音を鳴らす
+            beep();
+            setTimeout(beep, 300);
+            setTimeout(beep, 600);
         }
 
         // 通知表示
@@ -1015,7 +1250,7 @@
         }
 
         // 初期化実行
-        init();
+        window.addEventListener('load', init);
     </script>
 </body>
 </html>
