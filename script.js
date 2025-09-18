@@ -163,8 +163,10 @@ async function setupFCM() {
     try {
         // 通知権限確認
         if ('Notification' in window && Notification.permission === 'granted') {
-            // FCMトークン取得
-            const token = await messaging.getToken();
+            // FCMトークン取得（VAPIDキー付き）
+            const token = await messaging.getToken({
+                vapidKey: 'BOptcDpeM07zoFOBZiC9jLFuzLhInLqnv0ynYvogaeyjBPX3XeAMTTUQ3quYc9i2javOipF9ewv54YlD2jprWyY'
+            });
             if (token) {
                 // トークンをFirebaseに保存
                 await database.ref(`users/${userId}/fcmToken`).set(token);
