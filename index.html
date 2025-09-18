@@ -642,13 +642,14 @@
     <script>
         // Firebase設定
         const firebaseConfig = {
-            apiKey: "AIzaSyB9ALgQy_VTXoMLWQJWZI_fGg6IO4Q5cbw",
-            authDomain: "tunagaruyo-28db3.firebaseapp.com",
-            databaseURL: "https://tunagaruyo-28db3-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "tunagaruyo-28db3",
-            storageBucket: "tunagaruyo-28db3.firebasestorage.app",
-            messagingSenderId: "1012805836840",
-            appId: "1:1012805836840:web:73ea7ee307827f3828551d"
+            apiKey: "AIzaSyC16_eHOmV0nVtabM_9ce4mdwnMJ8b_Ksw",
+            authDomain: "tunagaruyo-e10ba.firebaseapp.com",
+            databaseURL: "https://tunagaruyo-e10ba-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "tunagaruyo-e10ba",
+            storageBucket: "tunagaruyo-e10ba.firebasestorage.app",
+            messagingSenderId: "433962055615",
+            appId: "1:433962055615:web:5022d493481725cd8e930a",
+            measurementId: "G-M5J1RKNN1R"
         };
 
         // グローバル変数
@@ -753,7 +754,15 @@
             }
 
             // 通知許可をリクエスト（ユーザーアクション後）
-            document.addEventListener('click', requestNotificationPermission, { once: true });
+            // document.addEventListener('click', requestNotificationPermission, { once: true });
+
+            // 通知許可をボタンで明示的にリクエスト
+            setTimeout(() => {
+                if ('Notification' in window && Notification.permission === 'default') {
+                    showNotification('通知を有効にしますか？画面をタップしてください 🔔');
+                    document.addEventListener('click', requestNotificationPermission, { once: true });
+                }
+            }, 2000);
 
             // ページ離脱時のクリーンアップ
             window.addEventListener('beforeunload', () => {
@@ -763,14 +772,60 @@
             });
         }
 
-        // 通知許可をリクエスト
-        function requestNotificationPermission() {
-            if ('Notification' in window && Notification.permission === 'default') {
-                Notification.requestPermission();
+        // 連絡先をセッションストレージにも保存（キャッシュ削除対策）
+        function saveContacts() {
+            localStorage.setItem('contacts', JSON.stringify(contacts));
+            sessionStorage.setItem('contacts', JSON.stringify(contacts));
+            // Firebaseにもバックアップ保存
+            if (database && userId) {
+                database.ref(`users/${userId}/contacts`).set(contacts).catch(error => {
+                    console.log('連絡先のクラウド保存に失敗:', error);
+                });
             }
         }
 
-        // ユーザーIDコピー
+        // 連絡先を復元
+        async function loadContacts() {
+            // まずローカルストレージから
+            let savedContacts = localStorage.getItem('contacts');
+            
+            // なければセッションストレージから
+            if (!savedContacts) {
+                savedContacts = sessionStorage.getItem('contacts');
+            }
+            
+            // それでもなければFirebaseから復元を試行
+            if (!savedContacts && database && userId) {
+                try {
+                    const snapshot = await database.ref(`users/${userId}/contacts`).once('value');
+                    if (snapshot.exists()) {
+                        savedContacts = JSON.stringify(snapshot.val());
+                        console.log('Firebaseから連絡先を復元しました');
+                    }
+                } catch (error) {
+                    console.log('Firebaseからの連絡先復元に失敗:', error);
+                }
+            }
+            
+            if (savedContacts) {
+                contacts = JSON.parse(savedContacts);
+                renderContacts();
+                console.log('連絡先を読み込みました:', contacts.length, '件');
+            }
+        }
+
+        // 通知許可をリクエスト
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        showNotification('通知が有効になりました！ 🔔');
+                    } else {
+                        showNotification('通知は無効のままです 🔕', 'error');
+                    }
+                });
+            }
+        }
         function copyUserId() {
             navigator.clipboard.writeText(userId).then(() => {
                 showNotification('IDをコピーしました！ 📋');
@@ -804,7 +859,7 @@
             }
 
             contacts.push({ name, id: contactId });
-            localStorage.setItem('contacts', JSON.stringify(contacts));
+            saveContacts(); // 改良版の保存関数を使用
             
             document.getElementById('contactName').value = '';
             document.getElementById('contactId').value = '';
@@ -942,8 +997,8 @@
                 await peerConnection.setLocalDescription(offer);
 
                 // Firebaseにオファーを送信
-                const callRef = database.ref(`calls/${contact.id}`);
-                await callRef.child('offer').set({
+                const callRef = database.ref(`calls/${contact.id}/offer`);
+                await callRef.set({
                     from: userId,
                     fromName: userName,
                     offer: {
