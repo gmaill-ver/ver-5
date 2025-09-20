@@ -1,0 +1,40 @@
+[build]
+  # publicディレクトリを公開ディレクトリに設定
+  publish = "public"
+  command = "echo 'Static site - no build required'"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  # SPAのための全てのルートをindex.htmlにリダイレクト
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  # セキュリティヘッダー
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  # Service Workerのためのヘッダー
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  # 静的アセットのキャッシュ設定
+  for = "/icon-*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  # Manifestファイルの設定
+  for = "/manifest.json"
+  [headers.values]
+    Content-Type = "application/manifest+json"
