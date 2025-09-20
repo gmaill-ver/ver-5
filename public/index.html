@@ -123,11 +123,24 @@
                 <div class="settings-item">
                     <label>着信音設定</label>
 
-                    <!-- 内蔵着信音 -->
+                    <!-- 現在の設定 -->
+                    <div class="current-ringtone-section">
+                        <div class="current-sound">
+                            <span>現在の着信音: </span>
+                            <span id="currentRingtone">デフォルト</span>
+                            <button class="test-current-btn" onclick="testCurrentRingtone()" id="testCurrentBtn">🔊</button>
+                        </div>
+                    </div>
+
+                    <!-- 内蔵着信音選択 -->
                     <div class="ringtone-section">
                         <h4 class="ringtone-category">🎵 内蔵着信音</h4>
-                        <div class="ringtone-grid" id="builtinRingtones">
-                            <!-- 内蔵着信音がここに表示されます -->
+                        <div class="ringtone-selector">
+                            <select id="builtinRingtoneSelect" class="ringtone-select" onchange="previewBuiltinRingtone(this.value)">
+                                <option value="">内蔵着信音を選択...</option>
+                            </select>
+                            <button class="ringtone-play-btn" onclick="toggleBuiltinRingtonePlay()" id="builtinPlayBtn">▶️</button>
+                            <button class="ringtone-select-btn" onclick="selectBuiltinRingtoneFromDropdown()">設定</button>
                         </div>
                     </div>
 
@@ -146,8 +159,14 @@
                                 <p class="upload-info">MP3, WAV, M4A, OGG対応 (最大10MB)</p>
                             </div>
                         </div>
-                        <div class="custom-ringtones" id="customRingtones">
-                            <!-- カスタム着信音がここに表示されます -->
+
+                        <div class="custom-ringtone-selector" id="customRingtoneSelector" style="display:none;">
+                            <select id="customRingtoneSelect" class="ringtone-select" onchange="previewCustomRingtone(this.value)">
+                                <option value="">カスタム着信音を選択...</option>
+                            </select>
+                            <button class="ringtone-play-btn" onclick="toggleCustomRingtonePlay()" id="customPlayBtn">▶️</button>
+                            <button class="ringtone-select-btn" onclick="selectCustomRingtoneFromDropdown()">設定</button>
+                            <button class="ringtone-delete-btn" onclick="deleteSelectedCustomRingtone()">🗑️</button>
                         </div>
                     </div>
 
@@ -160,37 +179,15 @@
                                 <select id="voiceSelect" class="voice-select">
                                     <option value="">音声を選択...</option>
                                 </select>
-                                <button class="test-btn" onclick="testVoiceSynthesis()">テスト</button>
-                                <button class="save-voice-btn" onclick="saveVoiceRingtone()">着信音に設定</button>
+                                <div class="voice-settings">
+                                    <label>音程: <input type="range" id="voicePitch" min="0.5" max="2" step="0.1" value="1"></label>
+                                    <label>速度: <input type="range" id="voiceRate" min="0.5" max="2" step="0.1" value="0.9"></label>
+                                </div>
+                                <div class="voice-actions">
+                                    <button class="test-btn" onclick="toggleVoiceSynthesis()" id="voiceTestBtn">テスト</button>
+                                    <button class="save-voice-btn" onclick="saveVoiceRingtone()">着信音に設定</button>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- 自動生成 -->
-                    <div class="ringtone-section">
-                        <h4 class="ringtone-category">🎼 メロディ生成</h4>
-                        <div class="melody-generator">
-                            <div class="generator-controls">
-                                <select id="melodyType" class="melody-select">
-                                    <option value="classic">クラシック</option>
-                                    <option value="electronic">エレクトロニック</option>
-                                    <option value="nature">自然音</option>
-                                    <option value="chime">チャイム</option>
-                                    <option value="bell">ベル</option>
-                                </select>
-                                <button class="generate-btn" onclick="generateMelody()">生成</button>
-                                <button class="test-btn" onclick="testGeneratedMelody()">テスト</button>
-                                <button class="save-melody-btn" onclick="saveGeneratedMelody()">保存</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 現在の設定 -->
-                    <div class="current-ringtone-display">
-                        <div class="current-sound">
-                            <span>現在の着信音: </span>
-                            <span id="currentRingtone">デフォルト</span>
-                            <button class="test-current-btn" onclick="testCurrentRingtone()">🔊</button>
                         </div>
                     </div>
                 </div>

@@ -39,8 +39,10 @@ let builtinRingtones = [];
 let customRingtones = [];
 let currentRingtoneType = 'builtin';
 let currentRingtoneId = 'default';
-let generatedMelody = null;
 let availableVoices = [];
+let currentlyPlayingAudio = null;
+let currentlyPlayingButton = null;
+let speechSynthesisUtterance = null;
 
 // Firebase初期化
 try {
@@ -1793,50 +1795,58 @@ function saveCustomRingtones() {
 
 // 着信音UIの描画
 function renderRingtoneUI() {
-    renderBuiltinRingtones();
-    renderCustomRingtones();
+    renderBuiltinRingtoneSelect();
+    renderCustomRingtoneSelect();
+    updateCurrentRingtoneDisplay();
 }
 
-// 内蔵着信音の描画
-function renderBuiltinRingtones() {
-    const container = document.getElementById('builtinRingtones');
-    if (!container) return;
+// 内蔵着信音のプルダウンを描画
+function renderBuiltinRingtoneSelect() {
+    const select = document.getElementById('builtinRingtoneSelect');
+    if (!select) return;
 
-    container.innerHTML = '';
+    select.innerHTML = '<option value="">内蔵着信音を選択...</option>';
     builtinRingtones.forEach(ringtone => {
-        const item = document.createElement('div');
-        item.className = `ringtone-item ${currentRingtoneType === 'builtin' && currentRingtoneId === ringtone.id ? 'selected' : ''}`;
-        item.innerHTML = `
-            <div class="ringtone-icon">${ringtone.icon}</div>
-            <div class="ringtone-name">${ringtone.name}</div>
-            <div class="ringtone-actions">
-                <button class="ringtone-play-btn" onclick="playBuiltinRingtone('${ringtone.id}')">▶️</button>
-                <button class="ringtone-select-btn" onclick="selectBuiltinRingtone('${ringtone.id}')">選択</button>
-            </div>
-        `;
-        container.appendChild(item);
+        const option = document.createElement('option');
+        option.value = ringtone.id;
+        option.textContent = `${ringtone.icon} ${ringtone.name}`;
+        if (currentRingtoneType === 'builtin' && currentRingtoneId === ringtone.id) {
+            option.selected = true;
+        }
+        select.appendChild(option);
     });
 }
 
-// カスタム着信音の描画
-function renderCustomRingtones() {
-    const container = document.getElementById('customRingtones');
-    if (!container) return;
+// カスタム着信音のプルダウンを描画
+function renderCustomRingtoneSelect() {
+    const select = document.getElementById('customRingtoneSelect');
+    const container = document.getElementById('customRingtoneSelector');
+    if (!select || !container) return;
 
-    container.innerHTML = '';
-    customRingtones.forEach((ringtone, index) => {
-        const item = document.createElement('div');
-        item.className = `ringtone-item ${currentRingtoneType === 'custom' && currentRingtoneId === ringtone.id ? 'selected' : ''}`;
-        item.innerHTML = `
-            <div class="ringtone-icon">🎵</div>
-            <div class="ringtone-name">${ringtone.name}</div>
-            <div class="ringtone-actions">
-                <button class="ringtone-play-btn" onclick="playCustomRingtoneById('${ringtone.id}')">▶️</button>
-                <button class="ringtone-select-btn" onclick="selectCustomRingtone('${ringtone.id}')">選択</button>
-                <button class="ringtone-delete-btn" onclick="deleteCustomRingtone('${ringtone.id}')">🗑️</button>
-            </div>
-        `;
-        container.appendChild(item);
+    select.innerHTML = '<option value="">カスタム着信音を選択...</option>';
+
+    if (customRingtones.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    customRingtones.forEach(ringtone => {
+        const option = document.createElement('option');
+        option.value = ringtone.id;
+
+        let displayName = ringtone.name;
+        if (ringtone.type === 'voice') {
+            displayName = `🗣️ ${ringtone.name}`;
+        } else {
+            displayName = `🎵 ${ringtone.name}`;
+        }
+
+        option.textContent = displayName;
+        if (currentRingtoneType === 'custom' && currentRingtoneId === ringtone.id) {
+            option.selected = true;
+        }
+        select.appendChild(option);
     });
 }
 
@@ -1844,7 +1854,7 @@ function renderCustomRingtones() {
 async function playBuiltinRingtone(id) {
     if (typeof Tone === 'undefined') {
         console.error('Tone.js not loaded');
-        return;
+        throw new Error('Tone.js not loaded');
     }
 
     try {
@@ -1852,7 +1862,7 @@ async function playBuiltinRingtone(id) {
         await Tone.start();
 
         const ringtone = builtinRingtones.find(r => r.id === id);
-        if (!ringtone) return;
+        if (!ringtone) throw new Error('Ringtone not found');
 
         switch (id) {
             case 'default':
@@ -1904,6 +1914,7 @@ async function playBuiltinRingtone(id) {
     } catch (error) {
         console.error('着信音再生エラー:', error);
         showNotification('着信音の再生に失敗しました', 'error');
+        throw error;
     }
 }
 
@@ -2305,9 +2316,18 @@ function handleFileUpload(files) {
 
 // === 音声合成機能 ===
 
-function testVoiceSynthesis() {
+function toggleVoiceSynthesis() {
+    const button = document.getElementById('voiceTestBtn');
+
+    if (button.textContent === '停止') {
+        stopAllAudio();
+        return;
+    }
+
     const message = document.getElementById('voiceMessage').value.trim();
     const voiceIndex = document.getElementById('voiceSelect').value;
+    const pitch = parseFloat(document.getElementById('voicePitch').value) || 1.0;
+    const rate = parseFloat(document.getElementById('voiceRate').value) || 0.9;
 
     if (!message) {
         showNotification('メッセージを入力してください', 'error');
@@ -2315,26 +2335,47 @@ function testVoiceSynthesis() {
     }
 
     if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(message);
+        stopAllAudio();
+
+        speechSynthesisUtterance = new SpeechSynthesisUtterance(message);
 
         if (voiceIndex && availableVoices[voiceIndex]) {
-            utterance.voice = availableVoices[voiceIndex];
+            speechSynthesisUtterance.voice = availableVoices[voiceIndex];
         }
 
-        utterance.rate = 0.9;
-        utterance.pitch = 1.0;
-        utterance.volume = 0.8;
+        speechSynthesisUtterance.rate = rate;
+        speechSynthesisUtterance.pitch = pitch;
+        speechSynthesisUtterance.volume = 0.8;
 
-        speechSynthesis.speak(utterance);
+        // 再生終了時の処理
+        speechSynthesisUtterance.onend = () => {
+            resetAllPlayButtons();
+        };
+
+        speechSynthesisUtterance.onerror = () => {
+            resetAllPlayButtons();
+        };
+
+        button.textContent = '停止';
+        button.classList.add('playing');
+        currentlyPlayingButton = button;
+
+        speechSynthesis.speak(speechSynthesisUtterance);
         showNotification('音声合成をテスト中...', 'success');
     } else {
         showNotification('音声合成がサポートされていません', 'error');
     }
 }
 
+function testVoiceSynthesis() {
+    toggleVoiceSynthesis();
+}
+
 function saveVoiceRingtone() {
     const message = document.getElementById('voiceMessage').value.trim();
     const voiceIndex = document.getElementById('voiceSelect').value;
+    const pitch = parseFloat(document.getElementById('voicePitch').value) || 1.0;
+    const rate = parseFloat(document.getElementById('voiceRate').value) || 0.9;
 
     if (!message) {
         showNotification('メッセージを入力してください', 'error');
@@ -2344,95 +2385,169 @@ function saveVoiceRingtone() {
     if ('speechSynthesis' in window) {
         const voiceRingtone = {
             id: 'voice_' + Date.now(),
-            name: `音声: ${message.substr(0, 20)}...`,
+            name: `音声: ${message.length > 20 ? message.substr(0, 20) + '...' : message}`,
             type: 'voice',
             message: message,
             voiceIndex: voiceIndex,
+            pitch: pitch,
+            rate: rate,
             uploadDate: Date.now()
         };
 
         customRingtones.push(voiceRingtone);
         saveCustomRingtones();
-        renderCustomRingtones();
+        renderCustomRingtoneSelect();
         showNotification('音声メッセージを着信音として保存しました 🗣️');
     } else {
         showNotification('音声合成がサポートされていません', 'error');
     }
 }
 
-// === メロディ自動生成機能 ===
+// === 音声停止機能 ===
 
-function generateMelody() {
-    const melodyType = document.getElementById('melodyType').value;
+function stopAllAudio() {
+    // 現在再生中の音声を停止
+    if (currentlyPlayingAudio) {
+        currentlyPlayingAudio.pause();
+        currentlyPlayingAudio.currentTime = 0;
+        currentlyPlayingAudio = null;
+    }
 
-    if (typeof Tone === 'undefined') {
-        showNotification('Tone.jsが読み込まれていません', 'error');
+    // Speech Synthesis停止
+    if (speechSynthesisUtterance) {
+        speechSynthesis.cancel();
+        speechSynthesisUtterance = null;
+    }
+
+    // Tone.js停止
+    if (typeof Tone !== 'undefined') {
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
+    }
+
+    // すべてのボタンを再生状態にリセット
+    resetAllPlayButtons();
+}
+
+function resetAllPlayButtons() {
+    const buttons = [
+        { id: 'builtinPlayBtn', text: '▶️' },
+        { id: 'customPlayBtn', text: '▶️' },
+        { id: 'voiceTestBtn', text: 'テスト' },
+        { id: 'testCurrentBtn', text: '🔊' }
+    ];
+
+    buttons.forEach(btn => {
+        const element = document.getElementById(btn.id);
+        if (element) {
+            element.textContent = btn.text;
+            element.classList.remove('playing');
+        }
+    });
+
+    currentlyPlayingButton = null;
+}
+
+// === プルダウン操作機能 ===
+
+function previewBuiltinRingtone(id) {
+    if (!id) return;
+    // プレビュー時は自動選択しない
+}
+
+function previewCustomRingtone(id) {
+    if (!id) return;
+    // プレビュー時は自動選択しない
+}
+
+function toggleBuiltinRingtonePlay() {
+    const select = document.getElementById('builtinRingtoneSelect');
+    const button = document.getElementById('builtinPlayBtn');
+    const selectedId = select.value;
+
+    if (!selectedId) {
+        showNotification('着信音を選択してください', 'error');
         return;
     }
 
-    // メロディ生成
-    generatedMelody = createMelodyByType(melodyType);
-    showNotification(`${melodyType}メロディを生成しました 🎼`);
-}
-
-function createMelodyByType(type) {
-    const scales = {
-        classic: ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"],
-        electronic: ["C3", "C#3", "D#3", "F3", "G3", "A#3", "C4"],
-        nature: ["G3", "A3", "B3", "D4", "E4", "G4", "A4"],
-        chime: ["C4", "E4", "G4", "C5", "E5"],
-        bell: ["F4", "A4", "C5", "F5"]
-    };
-
-    const scale = scales[type] || scales.classic;
-    const length = 6 + Math.floor(Math.random() * 4); // 6-10音符
-    const melody = [];
-
-    for (let i = 0; i < length; i++) {
-        const note = scale[Math.floor(Math.random() * scale.length)];
-        const duration = Math.random() > 0.5 ? "4n" : "8n";
-        melody.push({ note, duration, delay: i * 300 });
-    }
-
-    return { type, melody };
-}
-
-async function testGeneratedMelody() {
-    if (!generatedMelody) {
-        showNotification('まずメロディを生成してください', 'error');
+    if (button.textContent === '⏹️') {
+        stopAllAudio();
         return;
     }
 
-    await Tone.start();
-    const synth = new Tone.Synth().toDestination();
+    stopAllAudio();
+    button.textContent = '⏹️';
+    button.classList.add('playing');
+    currentlyPlayingButton = button;
 
-    for (const { note, duration, delay } of generatedMelody.melody) {
-        setTimeout(() => {
-            synth.triggerAttackRelease(note, duration);
-        }, delay);
-    }
-
-    showNotification('生成されたメロディを再生中...', 'success');
+    playBuiltinRingtone(selectedId).then(() => {
+        resetAllPlayButtons();
+    }).catch(() => {
+        resetAllPlayButtons();
+    });
 }
 
-function saveGeneratedMelody() {
-    if (!generatedMelody) {
-        showNotification('まずメロディを生成してください', 'error');
+function toggleCustomRingtonePlay() {
+    const select = document.getElementById('customRingtoneSelect');
+    const button = document.getElementById('customPlayBtn');
+    const selectedId = select.value;
+
+    if (!selectedId) {
+        showNotification('着信音を選択してください', 'error');
         return;
     }
 
-    const melodyRingtone = {
-        id: 'melody_' + Date.now(),
-        name: `生成メロディ: ${generatedMelody.type}`,
-        type: 'generated',
-        melody: generatedMelody,
-        uploadDate: Date.now()
-    };
+    if (button.textContent === '⏹️') {
+        stopAllAudio();
+        return;
+    }
 
-    customRingtones.push(melodyRingtone);
-    saveCustomRingtones();
-    renderCustomRingtones();
-    showNotification('生成メロディを着信音として保存しました 🎼');
+    stopAllAudio();
+    button.textContent = '⏹️';
+    button.classList.add('playing');
+    currentlyPlayingButton = button;
+
+    playCustomRingtoneById(selectedId).then(() => {
+        resetAllPlayButtons();
+    }).catch(() => {
+        resetAllPlayButtons();
+    });
+}
+
+function selectBuiltinRingtoneFromDropdown() {
+    const select = document.getElementById('builtinRingtoneSelect');
+    const selectedId = select.value;
+
+    if (!selectedId) {
+        showNotification('着信音を選択してください', 'error');
+        return;
+    }
+
+    selectBuiltinRingtone(selectedId);
+}
+
+function selectCustomRingtoneFromDropdown() {
+    const select = document.getElementById('customRingtoneSelect');
+    const selectedId = select.value;
+
+    if (!selectedId) {
+        showNotification('着信音を選択してください', 'error');
+        return;
+    }
+
+    selectCustomRingtone(selectedId);
+}
+
+function deleteSelectedCustomRingtone() {
+    const select = document.getElementById('customRingtoneSelect');
+    const selectedId = select.value;
+
+    if (!selectedId) {
+        showNotification('削除する着信音を選択してください', 'error');
+        return;
+    }
+
+    deleteCustomRingtone(selectedId);
 }
 
 // === 着信音選択機能 ===
@@ -2458,37 +2573,59 @@ function selectCustomRingtone(id) {
 }
 
 function playCustomRingtoneById(id) {
-    const ringtone = customRingtones.find(r => r.id === id);
-    if (!ringtone) return;
-
-    if (ringtone.type === 'voice') {
-        // 音声合成の再生
-        if ('speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(ringtone.message);
-            if (ringtone.voiceIndex && availableVoices[ringtone.voiceIndex]) {
-                utterance.voice = availableVoices[ringtone.voiceIndex];
-            }
-            speechSynthesis.speak(utterance);
+    return new Promise((resolve, reject) => {
+        const ringtone = customRingtones.find(r => r.id === id);
+        if (!ringtone) {
+            reject(new Error('Ringtone not found'));
+            return;
         }
-    } else if (ringtone.type === 'generated') {
-        // 生成メロディの再生
-        playGeneratedMelodyData(ringtone.melody);
-    } else {
-        // 通常の音声ファイルの再生
-        playCustomSound(ringtone.data);
-    }
+
+        if (ringtone.type === 'voice') {
+            // 音声合成の再生
+            if ('speechSynthesis' in window) {
+                speechSynthesisUtterance = new SpeechSynthesisUtterance(ringtone.message);
+
+                if (ringtone.voiceIndex && availableVoices[ringtone.voiceIndex]) {
+                    speechSynthesisUtterance.voice = availableVoices[ringtone.voiceIndex];
+                }
+
+                speechSynthesisUtterance.pitch = ringtone.pitch || 1.0;
+                speechSynthesisUtterance.rate = ringtone.rate || 0.9;
+                speechSynthesisUtterance.volume = 0.8;
+
+                speechSynthesisUtterance.onend = () => resolve();
+                speechSynthesisUtterance.onerror = () => reject(new Error('Speech synthesis error'));
+
+                speechSynthesis.speak(speechSynthesisUtterance);
+            } else {
+                reject(new Error('Speech synthesis not supported'));
+            }
+        } else {
+            // 通常の音声ファイルの再生
+            try {
+                const audio = new Audio(ringtone.data);
+                audio.volume = 0.7;
+                currentlyPlayingAudio = audio;
+
+                audio.onended = () => {
+                    currentlyPlayingAudio = null;
+                    resolve();
+                };
+
+                audio.onerror = () => {
+                    currentlyPlayingAudio = null;
+                    reject(new Error('Audio playback error'));
+                };
+
+                audio.play().catch(reject);
+            } catch (error) {
+                reject(error);
+            }
+        }
+    });
 }
 
-async function playGeneratedMelodyData(melodyData) {
-    await Tone.start();
-    const synth = new Tone.Synth().toDestination();
-
-    for (const { note, duration, delay } of melodyData.melody) {
-        setTimeout(() => {
-            synth.triggerAttackRelease(note, duration);
-        }, delay);
-    }
-}
+// メロディ生成機能は削除されました
 
 function deleteCustomRingtone(id) {
     const ringtone = customRingtones.find(r => r.id === id);
@@ -2525,10 +2662,32 @@ function updateCurrentRingtoneDisplay() {
 }
 
 function testCurrentRingtone() {
+    const button = document.getElementById('testCurrentBtn');
+
+    if (button.textContent === '⏹️') {
+        stopAllAudio();
+        return;
+    }
+
+    stopAllAudio();
+    button.textContent = '⏹️';
+    button.classList.add('playing');
+    currentlyPlayingButton = button;
+
     if (currentRingtoneType === 'builtin') {
-        playBuiltinRingtone(currentRingtoneId);
+        playBuiltinRingtone(currentRingtoneId).then(() => {
+            resetAllPlayButtons();
+        }).catch(() => {
+            resetAllPlayButtons();
+        });
     } else if (currentRingtoneType === 'custom') {
-        playCustomRingtoneById(currentRingtoneId);
+        playCustomRingtoneById(currentRingtoneId).then(() => {
+            resetAllPlayButtons();
+        }).catch(() => {
+            resetAllPlayButtons();
+        });
+    } else {
+        resetAllPlayButtons();
     }
 }
 

@@ -931,21 +931,47 @@ body {
 
 .voice-controls {
     display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.voice-select, .melody-select {
+.voice-select, .ringtone-select {
     padding: 8px 12px;
     border: 1px solid #d1d5db;
     border-radius: 6px;
     font-size: 0.9em;
     background: white;
-    min-width: 150px;
+    min-width: 200px;
+    flex: 1;
 }
 
-.save-voice-btn, .generate-btn, .save-melody-btn {
+.voice-settings {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.voice-settings label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+    color: #374151;
+    font-weight: 500;
+}
+
+.voice-settings input[type="range"] {
+    width: 100px;
+}
+
+.voice-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.save-voice-btn {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
     border: none;
@@ -956,23 +982,36 @@ body {
     transition: all 0.3s;
 }
 
-.save-voice-btn:hover, .generate-btn:hover, .save-melody-btn:hover {
+.save-voice-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-/* メロディ生成 */
-.melody-generator {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.generator-controls {
+/* 着信音選択機能 */
+.ringtone-selector, .custom-ringtone-selector {
     display: flex;
     gap: 8px;
     align-items: center;
     flex-wrap: wrap;
+}
+
+.ringtone-selector select, .custom-ringtone-selector select {
+    flex: 1;
+    min-width: 200px;
+}
+
+.ringtone-play-btn.playing, .test-btn.playing, .test-current-btn.playing {
+    background: #dc2626 !important;
+    color: white !important;
+}
+
+/* 現在の着信音セクション */
+.current-ringtone-section {
+    background: #f0f9ff;
+    border: 1px solid #0ea5e9;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
 }
 
 /* 現在の着信音表示 */
