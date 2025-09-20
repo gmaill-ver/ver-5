@@ -296,7 +296,7 @@ body {
     gap: 8px;
 }
 
-.call-btn, .delete-btn {
+.call-btn, .edit-btn, .delete-btn {
     width: 36px;
     height: 36px;
     border: none;
@@ -316,6 +316,15 @@ body {
 
 .call-btn:hover {
     background: #059669;
+}
+
+.edit-btn {
+    background: #f59e0b;
+    color: white;
+}
+
+.edit-btn:hover {
+    background: #d97706;
 }
 
 .delete-btn {

@@ -275,6 +275,35 @@ function copyUserId() {
     });
 }
 
+// 自動連絡先追加（着信時）
+function autoAddContact(contactId, contactName) {
+    // 既に存在する場合はスキップ
+    if (contacts.some(c => c.id === contactId)) {
+        return;
+    }
+
+    // 自分のIDはスキップ
+    if (contactId === userId) {
+        return;
+    }
+
+    // 連絡先を追加
+    const newContact = {
+        id: contactId,
+        name: contactName || contactId, // 名前がない場合はIDを使用
+        addedAt: Date.now(),
+        autoAdded: true // 自動追加フラグ
+    };
+
+    contacts.push(newContact);
+    saveContacts();
+    renderContacts();
+    renderContactsList();
+    updateContactCount();
+
+    console.log(`着信から自動追加: ${newContact.name} (${contactId})`);
+}
+
 // 連絡先追加
 function addContact() {
     const name = document.getElementById('contactName').value.trim();
@@ -319,6 +348,23 @@ function addContact() {
     // ショートカットリンクを案内
     const quickCallUrl = `${window.location.origin}${window.location.pathname}?call=${contactId}`;
     console.log(`クイックコールURL: ${quickCallUrl}`);
+}
+
+// 連絡先編集
+function editContact(contactId) {
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact) return;
+
+    const newName = prompt(`連絡先の名前を変更してください\n現在の名前: ${contact.name}`, contact.name);
+
+    if (newName !== null && newName.trim() !== '') {
+        const oldName = contact.name;
+        contact.name = newName.trim();
+        saveContacts();
+        renderContacts();
+        renderContactsList();
+        showNotification(`${oldName} → ${contact.name} に変更しました ✏️`);
+    }
 }
 
 // 連絡先削除
@@ -390,6 +436,7 @@ function renderContactsList() {
             </div>
             <div class="contact-actions">
                 <button class="call-btn" onclick="event.stopPropagation(); startCall({id: '${contact.id}', name: '${contact.name}'})">📞</button>
+                <button class="edit-btn" onclick="event.stopPropagation(); editContact('${contact.id}')">✏️</button>
                 <button class="delete-btn" onclick="event.stopPropagation(); deleteContact('${contact.id}')">🗑️</button>
             </div>
         `;
@@ -678,7 +725,10 @@ function listenForCalls() {
         if (data && !currentCall) {
             console.log('着信あり:', data);
             incomingOffer = data;
-            
+
+            // 着信者を自動で連絡先に追加（まだ登録されていない場合）
+            autoAddContact(data.from, data.fromName);
+
             // 着信表示
             document.getElementById('incomingCall').classList.add('active');
             document.getElementById('callerName').textContent = `${data.fromName || data.from}から着信`;
