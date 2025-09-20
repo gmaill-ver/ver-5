@@ -32,6 +32,10 @@
                 <span class="nav-icon">📞</span>
                 <span class="nav-label">連絡先</span>
             </button>
+            <button class="nav-tab" onclick="showTab('history')">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">履歴</span>
+            </button>
             <button class="nav-tab" onclick="showTab('settings')">
                 <span class="nav-icon">⚙️</span>
                 <span class="nav-label">設定</span>
@@ -77,6 +81,22 @@
                     <div class="empty-state">
                         <div class="empty-state-icon">📋</div>
                         <p>まだ連絡先がありません</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 履歴タブ -->
+        <div id="historyTab" class="tab-content">
+            <div class="glass-card">
+                <h3 class="section-title">
+                    <span>通話履歴</span>
+                    <span class="history-count" id="historyCount">0件</span>
+                </h3>
+                <div class="history-list" id="historyList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📞</div>
+                        <p>まだ通話履歴がありません</p>
                     </div>
                 </div>
             </div>

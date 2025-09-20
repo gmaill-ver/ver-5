@@ -24,6 +24,7 @@ let callTimer = null;
 let callStartTime = null;
 let currentCall = null;
 let contacts = [];
+let callHistory = []; // 通話履歴
 let incomingOffer = null;
 let iceCandidatesQueue = [];
 let offerListener = null;
@@ -96,7 +97,8 @@ function showTab(tabName) {
     const navTabs = document.querySelectorAll('.nav-tab');
     if (tabName === 'home') navTabs[0].classList.add('active');
     else if (tabName === 'contacts') navTabs[1].classList.add('active');
-    else if (tabName === 'settings') navTabs[2].classList.add('active');
+    else if (tabName === 'history') navTabs[2].classList.add('active');
+    else if (tabName === 'settings') navTabs[3].classList.add('active');
     
     // 連絡先タブの場合、リストを更新
     if (tabName === 'contacts') {
@@ -104,6 +106,15 @@ function showTab(tabName) {
             renderContactsList();
             updateContactCount();
             console.log('📋 連絡先タブ表示時の強制更新:', contacts.length);
+        }, 50);
+    }
+
+    // 履歴タブの場合、履歴を更新
+    if (tabName === 'history') {
+        setTimeout(() => {
+            renderHistoryList();
+            updateHistoryCount();
+            console.log('📞 履歴タブ表示時の強制更新:', callHistory.length);
         }, 50);
     }
 }
@@ -124,6 +135,9 @@ async function init() {
 
     // 保存された連絡先を読み込み
     loadContacts();
+
+    // 保存された通話履歴を読み込み
+    loadCallHistory();
 
     // Firebase リスナー設定
     if (database) {
@@ -225,11 +239,24 @@ function saveUserName() {
 function saveContacts() {
     localStorage.setItem('contacts', JSON.stringify(contacts));
     sessionStorage.setItem('contacts', JSON.stringify(contacts));
-    
+
     // Firebaseにもバックアップ保存
     if (database && userId) {
         database.ref(`users/${userId}/contacts`).set(contacts).catch(error => {
             console.log('連絡先のクラウド保存に失敗:', error);
+        });
+    }
+}
+
+// 通話履歴を保存
+function saveCallHistory() {
+    localStorage.setItem('callHistory', JSON.stringify(callHistory));
+    sessionStorage.setItem('callHistory', JSON.stringify(callHistory));
+
+    // Firebaseにもバックアップ保存
+    if (database && userId) {
+        database.ref(`users/${userId}/callHistory`).set(callHistory).catch(error => {
+            console.log('通話履歴のクラウド保存に失敗:', error);
         });
     }
 }
@@ -264,6 +291,35 @@ async function loadContacts() {
     }
 }
 
+// 通話履歴を復元
+async function loadCallHistory() {
+    // まずローカルストレージから
+    let savedHistory = localStorage.getItem('callHistory');
+
+    // なければセッションストレージから
+    if (!savedHistory) {
+        savedHistory = sessionStorage.getItem('callHistory');
+    }
+
+    // それでもなければFirebaseから復元を試行
+    if (!savedHistory && database && userId) {
+        try {
+            const snapshot = await database.ref(`users/${userId}/callHistory`).once('value');
+            if (snapshot.exists()) {
+                savedHistory = JSON.stringify(snapshot.val());
+                console.log('Firebaseから通話履歴を復元しました');
+            }
+        } catch (error) {
+            console.log('Firebaseからの通話履歴復元に失敗:', error);
+        }
+    }
+
+    if (savedHistory) {
+        callHistory = JSON.parse(savedHistory);
+        console.log('通話履歴を読み込みました:', callHistory.length);
+    }
+}
+
 // 連絡先数更新
 function updateContactCount() {
     const countElement = document.getElementById('contactCount');
@@ -289,6 +345,34 @@ function debugContacts() {
 
 // グローバルスコープでデバッグ関数を利用可能にする
 window.debugContacts = debugContacts;
+
+// 通話履歴を追加
+function addCallHistory(type, contactId, contactName, duration = null, status = 'completed') {
+    const historyItem = {
+        id: Date.now().toString(),
+        type: type, // 'incoming', 'outgoing', 'missed'
+        contactId: contactId,
+        contactName: contactName || contactId,
+        timestamp: Date.now(),
+        duration: duration, // 秒数、応答しなかった場合はnull
+        status: status // 'completed', 'missed', 'rejected'
+    };
+
+    callHistory.unshift(historyItem); // 最新を先頭に追加
+
+    // 履歴は最大100件まで保持
+    if (callHistory.length > 100) {
+        callHistory = callHistory.slice(0, 100);
+    }
+
+    saveCallHistory();
+    console.log('📞 通話履歴に追加:', historyItem);
+
+    // 相手を自動で連絡先に追加
+    autoAddContact(contactId, contactName);
+
+    return historyItem;
+}
 
 // 自動連絡先追加（着信時）
 function autoAddContact(contactId, contactName) {
@@ -474,6 +558,107 @@ function renderContactsList() {
     });
 }
 
+// 履歴数更新
+function updateHistoryCount() {
+    const countElement = document.getElementById('historyCount');
+    if (countElement) {
+        countElement.textContent = `${callHistory.length}件`;
+    }
+}
+
+// 履歴リスト表示
+function renderHistoryList() {
+    const listContainer = document.getElementById('historyList');
+
+    if (callHistory.length === 0) {
+        listContainer.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📞</div>
+                <p>まだ通話履歴がありません</p>
+            </div>
+        `;
+        return;
+    }
+
+    listContainer.innerHTML = '';
+    callHistory.forEach((historyItem) => {
+        const item = document.createElement('div');
+        item.className = 'history-list-item';
+
+        // 日時のフォーマット
+        const date = new Date(historyItem.timestamp);
+        const timeStr = date.toLocaleString('ja-JP', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        // 通話タイプのアイコン
+        let typeIcon = '📞';
+        let typeClass = '';
+        if (historyItem.type === 'incoming') {
+            typeIcon = historyItem.status === 'missed' ? '📵' : '📞';
+            typeClass = historyItem.status === 'missed' ? 'missed' : 'incoming';
+        } else if (historyItem.type === 'outgoing') {
+            typeIcon = '📲';
+            typeClass = 'outgoing';
+        }
+
+        // 通話時間
+        let durationStr = '';
+        if (historyItem.duration) {
+            const minutes = Math.floor(historyItem.duration / 60);
+            const seconds = historyItem.duration % 60;
+            durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        } else {
+            durationStr = historyItem.status === 'missed' ? '不在着信' :
+                         historyItem.status === 'rejected' ? '拒否' :
+                         historyItem.status === 'calling' ? '発信' : '';
+        }
+
+        item.innerHTML = `
+            <div class="history-info" onclick="startCall({id: '${historyItem.contactId}', name: '${historyItem.contactName}'})">
+                <div class="history-icon ${typeClass}">${typeIcon}</div>
+                <div class="history-details">
+                    <div class="history-name">${historyItem.contactName}</div>
+                    <div class="history-meta">
+                        <span class="history-time">${timeStr}</span>
+                        <span class="history-duration">${durationStr}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="history-actions">
+                <button class="call-btn" onclick="event.stopPropagation(); startCall({id: '${historyItem.contactId}', name: '${historyItem.contactName}'})">📞</button>
+                <button class="add-contact-btn" onclick="event.stopPropagation(); addContactFromHistory('${historyItem.contactId}', '${historyItem.contactName}')">➕</button>
+            </div>
+        `;
+        listContainer.appendChild(item);
+    });
+}
+
+// 履歴から連絡先に追加
+function addContactFromHistory(contactId, contactName) {
+    // 既に存在する場合はスキップ
+    if (contacts.some(c => c.id === contactId)) {
+        showNotification('既に連絡先に登録済みです 📋', 'error');
+        return;
+    }
+
+    contacts.push({
+        id: contactId,
+        name: contactName || contactId,
+        addedAt: Date.now(),
+        fromHistory: true
+    });
+
+    saveContacts();
+    renderContacts();
+    renderContactsList();
+    updateContactCount();
+    showNotification(`${contactName} を連絡先に追加しました ✅`);
+}
+
 // 連絡先エクスポート
 function exportContacts() {
     if (contacts.length === 0) {
@@ -633,7 +818,10 @@ async function startCall(contact) {
     }
 
     currentCall = contact;
-    
+
+    // 発信履歴を記録
+    addCallHistory('outgoing', contact.id, contact.name, null, 'calling');
+
     // 通話画面表示
     document.getElementById('callPanel').classList.add('active');
     document.getElementById('callingName').textContent = `${contact.name}`;
@@ -764,6 +952,9 @@ function listenForCalls() {
             console.log('📋 現在の連絡先数:', contacts.length);
             console.log('👤 自分のID:', userId);
             incomingOffer = data;
+
+            // 着信履歴を記録
+            addCallHistory('incoming', data.from, data.fromName, null, 'ringing');
 
             // 着信者を自動で連絡先に追加（まだ登録されていない場合）
             console.log('🔄 autoAddContact呼び出し中...');
