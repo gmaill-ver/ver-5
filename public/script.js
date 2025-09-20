@@ -169,6 +169,9 @@ async function init() {
     // URLパラメータからクイックコール処理
     handleQuickCall();
 
+    // Service Worker更新通知のリスナー
+    setupServiceWorkerUpdateListener();
+
     // ページ離脱時のクリーンアップ
     window.addEventListener('beforeunload', () => {
         if (currentCall) {
@@ -202,6 +205,36 @@ async function setupFCM() {
         });
     } catch (error) {
         console.error('FCMセットアップエラー:', error);
+    }
+}
+
+// Service Worker更新通知のセットアップ
+function setupServiceWorkerUpdateListener() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data.type === 'SW_UPDATED') {
+                console.log('🔄 アプリが更新されました:', event.data.version);
+                showNotification('🔄 アプリが更新されました！最新機能が利用できます', 'success');
+
+                // 5秒後に自動リロードを提案
+                setTimeout(() => {
+                    if (confirm('アプリの更新が完了しました。\n最新機能を使用するため、アプリを再読み込みしますか？')) {
+                        window.location.reload();
+                    }
+                }, 5000);
+            }
+        });
+
+        // Service Worker更新チェック
+        navigator.serviceWorker.ready.then(registration => {
+            // 定期的に更新をチェック（10分間隔）
+            setInterval(() => {
+                registration.update();
+            }, 10 * 60 * 1000);
+
+            // 初回チェック
+            registration.update();
+        });
     }
 }
 
@@ -862,10 +895,14 @@ async function startCall(contact) {
         // アンサー待機
         waitForAnswer(contact.id);
 
+        // 拒否通知のリスナー
+        listenForReject(contact.id);
+
         // 30秒でタイムアウト
         callTimeout = setTimeout(() => {
             if (currentCall && peerConnection && peerConnection.connectionState !== 'connected') {
                 showNotification('応答がありません ⏰', 'error');
+                addCallHistory('outgoing', contact.id, contact.name, null, 'missed');
                 endCall();
             }
         }, 30000);
@@ -1071,13 +1108,70 @@ function processIceCandidates(peerId) {
 // 着信拒否
 function rejectCall() {
     document.getElementById('incomingCall').classList.remove('active');
-    
+
     if (incomingOffer) {
+        // 相手に拒否通知を送信
+        sendRejectNotification(incomingOffer.from);
+
+        // 履歴に拒否として記録
+        addCallHistory('incoming', incomingOffer.from, incomingOffer.fromName, null, 'rejected');
+
+        // オファーを削除
         database.ref(`calls/${userId}/offer`).remove();
         incomingOffer = null;
     }
-    
+
     showNotification('着信を拒否しました ❌');
+}
+
+// 拒否通知を送信
+async function sendRejectNotification(targetId) {
+    try {
+        // 相手のコール状態に拒否フラグを設定
+        await database.ref(`calls/${targetId}/rejected`).set({
+            from: userId,
+            timestamp: Date.now()
+        });
+
+        console.log('📵 拒否通知を送信:', targetId);
+    } catch (error) {
+        console.error('拒否通知送信エラー:', error);
+    }
+}
+
+// 拒否通知のリスナー
+function listenForReject(targetId) {
+    const rejectRef = database.ref(`calls/${userId}/rejected`);
+    const rejectListener = rejectRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && currentCall && currentCall.id === targetId) {
+            console.log('📵 相手が着信を拒否しました');
+            showNotification('着信が拒否されました 📵', 'error');
+
+            // 履歴を更新
+            addCallHistory('outgoing', targetId, currentCall.name, null, 'rejected');
+
+            // 拒否フラグを削除
+            rejectRef.remove();
+
+            // 通話終了
+            endCall();
+        }
+    });
+
+    // 通話終了時にリスナーを削除
+    if (callTimeout) {
+        const originalTimeout = callTimeout;
+        clearTimeout(originalTimeout);
+        callTimeout = setTimeout(() => {
+            rejectRef.off('value', rejectListener);
+            if (currentCall && peerConnection && peerConnection.connectionState !== 'connected') {
+                showNotification('応答がありません ⏰', 'error');
+                addCallHistory('outgoing', targetId, currentCall.name, null, 'missed');
+                endCall();
+            }
+        }, 30000);
+    }
 }
 
 // 通話タイマー
