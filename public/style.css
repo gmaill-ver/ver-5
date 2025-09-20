@@ -709,3 +709,59 @@ body {
         font-size: 0.7em;
     }
 }
+
+/* 音声設定 */
+.sound-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.sound-settings button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.9em;
+}
+
+.upload-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.upload-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.test-btn {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.test-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
+}
+
+.current-sound {
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+}
+
+.current-sound span:first-child {
+    font-weight: 500;
+}
+
+.current-sound span:last-child {
+    color: #2563eb;
+    font-weight: 600;
+}

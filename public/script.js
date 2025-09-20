@@ -33,6 +33,8 @@ let iceListener = null;
 let endCallListener = null;
 let callTimeout = null;
 let deferredPrompt = null;
+let customRingtone = null;
+let customDialtone = null;
 
 // Firebase初期化
 try {
@@ -139,6 +141,9 @@ async function init() {
 
     // 保存された通話履歴を読み込み
     loadCallHistory();
+
+    // 保存された音声設定を読み込み
+    loadSoundSettings();
 
     // Firebase リスナー設定
     if (database) {
@@ -953,6 +958,9 @@ async function startCall(contact) {
         // プッシュ通知送信（相手がオフラインの場合）
         sendCallNotification(contact.id);
 
+        // 発信音を再生
+        playDialtone();
+
         console.log('オファー送信完了');
         showNotification(`${contact.name}に発信中... 📞`);
 
@@ -1484,33 +1492,69 @@ async function endCall() {
 
 // 着信音
 function playRingtone() {
+    if (customRingtone) {
+        playCustomSound(customRingtone);
+        return;
+    }
+
     try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const duration = 0.2;
         const frequency = 440;
-        
+
         function beep() {
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
-            
+
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
-            
+
             oscillator.frequency.value = frequency;
             oscillator.type = 'sine';
-            
+
             gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
-            
+
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + duration);
         }
-        
+
         beep();
         setTimeout(beep, 300);
         setTimeout(beep, 600);
     } catch (error) {
         console.error('着信音再生エラー:', error);
+    }
+}
+
+// 発信音
+function playDialtone() {
+    if (customDialtone) {
+        playCustomSound(customDialtone);
+        return;
+    }
+
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const duration = 0.5;
+        const frequency = 350;
+
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
+
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+    } catch (error) {
+        console.error('発信音再生エラー:', error);
     }
 }
 
@@ -1638,6 +1682,128 @@ function audioBufferToWav(buffer) {
     }
 
     return arrayBuffer;
+}
+
+// 音声設定の読み込み
+function loadSoundSettings() {
+    // 着信音設定の読み込み
+    const savedRingtone = localStorage.getItem('customRingtone');
+    const ringtoneName = localStorage.getItem('ringtoneName');
+    if (savedRingtone) {
+        customRingtone = savedRingtone;
+        document.getElementById('currentRingtone').textContent = ringtoneName || 'カスタム';
+    }
+
+    // 発信音設定の読み込み
+    const savedDialtone = localStorage.getItem('customDialtone');
+    const dialtoneName = localStorage.getItem('dialtoneName');
+    if (savedDialtone) {
+        customDialtone = savedDialtone;
+        document.getElementById('currentDialtone').textContent = dialtoneName || 'カスタム';
+    }
+}
+
+// 音声設定の保存
+function saveSoundSettings() {
+    if (customRingtone) {
+        localStorage.setItem('customRingtone', customRingtone);
+    }
+    if (customDialtone) {
+        localStorage.setItem('customDialtone', customDialtone);
+    }
+}
+
+// 着信音アップロード
+function uploadRingtone(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // ファイルサイズチェック（10MB以下）
+    if (file.size > 10 * 1024 * 1024) {
+        showNotification('ファイルサイズが大きすぎます（10MB以下）', 'error');
+        return;
+    }
+
+    // 音声ファイルかチェック
+    if (!file.type.startsWith('audio/')) {
+        showNotification('音声ファイルを選択してください', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        customRingtone = e.target.result;
+        localStorage.setItem('customRingtone', customRingtone);
+        localStorage.setItem('ringtoneName', file.name);
+        document.getElementById('currentRingtone').textContent = file.name;
+        showNotification(`着信音を設定しました: ${file.name}`, 'success');
+    };
+    reader.readAsDataURL(file);
+}
+
+// 発信音アップロード
+function uploadDialtone(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // ファイルサイズチェック（10MB以下）
+    if (file.size > 10 * 1024 * 1024) {
+        showNotification('ファイルサイズが大きすぎます（10MB以下）', 'error');
+        return;
+    }
+
+    // 音声ファイルかチェック
+    if (!file.type.startsWith('audio/')) {
+        showNotification('音声ファイルを選択してください', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        customDialtone = e.target.result;
+        localStorage.setItem('customDialtone', customDialtone);
+        localStorage.setItem('dialtoneName', file.name);
+        document.getElementById('currentDialtone').textContent = file.name;
+        showNotification(`発信音を設定しました: ${file.name}`, 'success');
+    };
+    reader.readAsDataURL(file);
+}
+
+// 着信音テスト
+function testRingtone() {
+    if (customRingtone) {
+        playCustomSound(customRingtone);
+        showNotification('カスタム着信音を再生中...', 'success');
+    } else {
+        playRingtone();
+        showNotification('デフォルト着信音を再生中...', 'success');
+    }
+}
+
+// 発信音テスト
+function testDialtone() {
+    if (customDialtone) {
+        playCustomSound(customDialtone);
+        showNotification('カスタム発信音を再生中...', 'success');
+    } else {
+        playDialtone();
+        showNotification('デフォルト発信音を再生中...', 'success');
+    }
+}
+
+// カスタム音声再生
+function playCustomSound(audioData) {
+    try {
+        const audio = new Audio(audioData);
+        audio.volume = 0.7;
+        audio.play().catch(error => {
+            console.error('音声再生エラー:', error);
+            showNotification('音声の再生に失敗しました', 'error');
+        });
+    } catch (error) {
+        console.error('音声作成エラー:', error);
+        showNotification('音声データが無効です', 'error');
+    }
 }
 
 // 手動アプリ更新

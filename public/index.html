@@ -121,11 +121,42 @@
                 </div>
 
                 <div class="settings-item">
-                    <label>着信音</label>
-                    <button class="ringtone-btn" onclick="downloadRingtone()">
-                        着信音をダウンロード
-                    </button>
-                    <p class="settings-hint">アプリで使用している着信音をダウンロード</p>
+                    <label>着信音設定</label>
+                    <div class="sound-settings">
+                        <button class="ringtone-btn" onclick="downloadRingtone()">
+                            デフォルト着信音をダウンロード
+                        </button>
+                        <button class="upload-btn" onclick="document.getElementById('ringtoneFile').click()">
+                            着信音をアップロード
+                        </button>
+                        <input type="file" id="ringtoneFile" accept="audio/*" style="display:none;" onchange="uploadRingtone(event)">
+                        <button class="test-btn" onclick="testRingtone()">
+                            着信音をテスト
+                        </button>
+                        <div class="current-sound">
+                            <span>現在の着信音: </span>
+                            <span id="currentRingtone">デフォルト</span>
+                        </div>
+                    </div>
+                    <p class="settings-hint">カスタム着信音をアップロードして設定できます</p>
+                </div>
+
+                <div class="settings-item">
+                    <label>発信音設定</label>
+                    <div class="sound-settings">
+                        <button class="upload-btn" onclick="document.getElementById('dialtoneFile').click()">
+                            発信音をアップロード
+                        </button>
+                        <input type="file" id="dialtoneFile" accept="audio/*" style="display:none;" onchange="uploadDialtone(event)">
+                        <button class="test-btn" onclick="testDialtone()">
+                            発信音をテスト
+                        </button>
+                        <div class="current-sound">
+                            <span>現在の発信音: </span>
+                            <span id="currentDialtone">デフォルト</span>
+                        </div>
+                    </div>
+                    <p class="settings-hint">発信時に再生される音声を設定できます</p>
                 </div>
 
                 <div class="settings-item">
