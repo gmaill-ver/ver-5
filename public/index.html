@@ -44,12 +44,6 @@
 
         <!-- ホームタブ -->
         <div id="homeTab" class="tab-content active">
-            <div class="glass-card user-id-card">
-                <div class="user-id-label">あなたのID</div>
-                <div class="user-id" id="userId">生成中...</div>
-                <button class="copy-btn" onclick="copyUserId()">📋 IDをコピー</button>
-            </div>
-
             <div class="glass-card add-contact-card">
                 <h3 class="section-title">友達を追加</h3>
                 <div class="input-group">
@@ -104,9 +98,15 @@
 
         <!-- 設定タブ -->
         <div id="settingsTab" class="tab-content">
+            <div class="glass-card user-id-card">
+                <div class="user-id-label">あなたのID</div>
+                <div class="user-id" id="userId">生成中...</div>
+                <button class="copy-btn" onclick="copyUserId()">📋 IDをコピー</button>
+            </div>
+
             <div class="glass-card">
                 <h3 class="section-title">設定</h3>
-                
+
                 <div class="settings-item">
                     <label for="userName">あなたの名前</label>
                     <input type="text" id="userName" class="input-field" placeholder="表示名を入力">
@@ -126,6 +126,14 @@
                         アプリをインストール
                     </button>
                     <p class="settings-hint">ホーム画面に追加してオフラインでも使用可能</p>
+                </div>
+
+                <div class="settings-item">
+                    <label>アプリ更新</label>
+                    <button class="update-btn" onclick="forceAppUpdate()">
+                        最新版に更新
+                    </button>
+                    <p class="settings-hint">手動でアプリを最新版に更新</p>
                 </div>
 
                 <div class="settings-item">

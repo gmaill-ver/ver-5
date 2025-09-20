@@ -646,7 +646,7 @@ function renderContactsList() {
                 </div>
             </div>
             <div class="contact-actions">
-                <button class="call-btn" onclick="event.stopPropagation(); startCall({id: '${contact.id}', name: '${contact.name}'})">📞</button>
+                <button class="call-btn" onclick="event.stopPropagation(); startCall({id: '${contact.id}', name: '${contact.name}'})">☎️</button>
                 <button class="edit-btn" onclick="event.stopPropagation(); editContact('${contact.id}')">✏️</button>
                 <button class="delete-btn" onclick="event.stopPropagation(); deleteContact('${contact.id}')">🗑️</button>
             </div>
@@ -692,13 +692,13 @@ function renderHistoryList() {
         });
 
         // 通話タイプのアイコン
-        let typeIcon = '📞';
+        let typeIcon = '☎️';
         let typeClass = '';
         if (historyItem.type === 'incoming') {
-            typeIcon = historyItem.status === 'missed' ? '📵' : '📞';
+            typeIcon = historyItem.status === 'missed' ? '📵' : '☎️';
             typeClass = historyItem.status === 'missed' ? 'missed' : 'incoming';
         } else if (historyItem.type === 'outgoing') {
-            typeIcon = '📲';
+            typeIcon = '☎️';
             typeClass = 'outgoing';
         }
 
@@ -726,7 +726,7 @@ function renderHistoryList() {
                 </div>
             </div>
             <div class="history-actions">
-                <button class="call-btn" onclick="event.stopPropagation(); startCall({id: '${historyItem.contactId}', name: '${historyItem.contactName}'})">📞</button>
+                <button class="call-btn" onclick="event.stopPropagation(); startCall({id: '${historyItem.contactId}', name: '${historyItem.contactName}'})">☎️</button>
                 <button class="add-contact-btn" onclick="event.stopPropagation(); addContactFromHistory('${historyItem.contactId}', '${historyItem.contactName}')">➕</button>
             </div>
         `;
