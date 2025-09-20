@@ -277,13 +277,17 @@ function copyUserId() {
 
 // 自動連絡先追加（着信時）
 function autoAddContact(contactId, contactName) {
+    console.log('🔍 autoAddContact called:', {contactId, contactName, userId, contacts: contacts.length});
+
     // 既に存在する場合はスキップ
     if (contacts.some(c => c.id === contactId)) {
+        console.log('⚠️ 連絡先は既に存在します:', contactId);
         return;
     }
 
     // 自分のIDはスキップ
     if (contactId === userId) {
+        console.log('⚠️ 自分のIDはスキップします:', contactId);
         return;
     }
 
@@ -295,13 +299,15 @@ function autoAddContact(contactId, contactName) {
         autoAdded: true // 自動追加フラグ
     };
 
+    console.log('✅ 新しい連絡先を追加:', newContact);
     contacts.push(newContact);
     saveContacts();
     renderContacts();
     renderContactsList();
     updateContactCount();
 
-    console.log(`着信から自動追加: ${newContact.name} (${contactId})`);
+    console.log(`🎉 着信から自動追加完了: ${newContact.name} (${contactId})`);
+    showNotification(`📞 ${newContact.name} を連絡先に追加しました`);
 }
 
 // 連絡先追加
@@ -688,6 +694,13 @@ function waitForAnswer(targetId) {
         const data = snapshot.val();
         if (data && peerConnection && peerConnection.currentRemoteDescription === null) {
             console.log('アンサー受信');
+
+            // 応答があった場合、発信側でも相手を連絡先に追加
+            if (currentCall) {
+                console.log('🔄 発信側での自動追加チェック...');
+                autoAddContact(currentCall.id, currentCall.name);
+            }
+
             try {
                 const answer = new RTCSessionDescription(data.answer);
                 await peerConnection.setRemoteDescription(answer);
@@ -723,10 +736,13 @@ function listenForCalls() {
     offerListener = offerRef.on('value', async (snapshot) => {
         const data = snapshot.val();
         if (data && !currentCall) {
-            console.log('着信あり:', data);
+            console.log('📞 着信あり:', data);
+            console.log('📋 現在の連絡先数:', contacts.length);
+            console.log('👤 自分のID:', userId);
             incomingOffer = data;
 
             // 着信者を自動で連絡先に追加（まだ登録されていない場合）
+            console.log('🔄 autoAddContact呼び出し中...');
             autoAddContact(data.from, data.fromName);
 
             // 着信表示
@@ -754,7 +770,11 @@ async function acceptCall() {
     if (!incomingOffer) return;
 
     document.getElementById('incomingCall').classList.remove('active');
-    
+
+    // 応答時にも確実に連絡先に追加（バックアップ処理）
+    console.log('🔄 応答時の自動追加チェック...');
+    autoAddContact(incomingOffer.from, incomingOffer.fromName);
+
     // 通話相手を設定
     currentCall = {
         id: incomingOffer.from,
