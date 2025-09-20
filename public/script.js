@@ -172,6 +172,9 @@ async function init() {
     // Service Worker更新通知のリスナー
     setupServiceWorkerUpdateListener();
 
+    // PWA起動時の積極的な更新チェック
+    setupAggressiveUpdateCheck();
+
     // ページ離脱時のクリーンアップ
     window.addEventListener('beforeunload', () => {
         if (currentCall) {
@@ -227,13 +230,71 @@ function setupServiceWorkerUpdateListener() {
 
         // Service Worker更新チェック
         navigator.serviceWorker.ready.then(registration => {
-            // 定期的に更新をチェック（10分間隔）
+            // 定期的に更新をチェック（5分間隔に短縮）
             setInterval(() => {
                 registration.update();
-            }, 10 * 60 * 1000);
+            }, 5 * 60 * 1000);
 
             // 初回チェック
             registration.update();
+        });
+    }
+}
+
+// 積極的な更新チェック（PWA用）
+function setupAggressiveUpdateCheck() {
+    if ('serviceWorker' in navigator) {
+        // PWA起動時の即座更新チェック
+        navigator.serviceWorker.ready.then(registration => {
+            // 3秒後に強制チェック
+            setTimeout(() => {
+                console.log('🔄 PWA起動時の更新チェック実行');
+                registration.update();
+
+                // さらに強力な方法：新しいSWをアクティベート
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    registrations.forEach(reg => {
+                        reg.update();
+                    });
+                });
+            }, 3000);
+
+            // 10秒後にもう一度チェック
+            setTimeout(() => {
+                registration.update();
+            }, 10000);
+        });
+
+        // ページフォーカス時の更新チェック
+        let lastFocusTime = Date.now();
+        window.addEventListener('focus', () => {
+            const now = Date.now();
+            // 30秒以上経過している場合のみチェック
+            if (now - lastFocusTime > 30000) {
+                console.log('🔄 フォーカス時の更新チェック実行');
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.update();
+                });
+                lastFocusTime = now;
+            }
+        });
+
+        // オンライン復帰時の更新チェック
+        window.addEventListener('online', () => {
+            console.log('🔄 オンライン復帰時の更新チェック実行');
+            navigator.serviceWorker.ready.then(registration => {
+                registration.update();
+            });
+        });
+
+        // visibilitychange時の更新チェック（アプリ切り替え）
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                console.log('🔄 アプリ切り替え時の更新チェック実行');
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.update();
+                });
+            }
         });
     }
 }
@@ -1418,6 +1479,35 @@ window.addEventListener('unhandledrejection', (event) => {
     console.error('未処理のPromise拒否:', event.reason);
     event.preventDefault();
 });
+
+// 手動アプリ更新
+function forceAppUpdate() {
+    showNotification('アプリを更新しています...', 'info');
+
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        // Service Workerに更新をリクエスト
+        navigator.serviceWorker.controller.postMessage({
+            type: 'FORCE_UPDATE'
+        });
+
+        // キャッシュをクリア
+        if ('caches' in window) {
+            caches.keys().then(names => {
+                names.forEach(name => {
+                    caches.delete(name);
+                });
+            });
+        }
+
+        // 少し待ってからリロード
+        setTimeout(() => {
+            window.location.reload(true);
+        }, 1000);
+    } else {
+        // Service Workerが無い場合は単純にリロード
+        window.location.reload(true);
+    }
+}
 
 // 初期化実行
 window.addEventListener('load', init);

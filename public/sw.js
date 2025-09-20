@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tunagaru-v2.1.0'; // バージョンを上げて強制更新
+const CACHE_NAME = 'tunagaru-v2.2.0'; // バージョンを上げて強制更新
 const urlsToCache = [
   '/',
   '/index.html',
@@ -58,4 +58,13 @@ self.addEventListener('activate', event => {
       });
     })
   );
+});
+
+// メッセージハンドラー
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'FORCE_UPDATE') {
+    console.log('Force update requested');
+    // 新しいService Workerをインストール
+    self.skipWaiting();
+  }
 });

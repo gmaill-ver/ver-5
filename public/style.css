@@ -439,7 +439,7 @@ body {
     color: #374151;
 }
 
-.save-btn, .notification-btn, .install-btn, .export-btn, .import-btn {
+.save-btn, .notification-btn, .install-btn, .update-btn, .export-btn, .import-btn {
     background: #6b7280;
     color: white;
     border: none;
@@ -452,7 +452,7 @@ body {
     transition: background-color 0.2s;
 }
 
-.save-btn:hover, .notification-btn:hover, .install-btn:hover,
+.save-btn:hover, .notification-btn:hover, .install-btn:hover, .update-btn:hover,
 .export-btn:hover, .import-btn:hover {
     background: #4b5563;
 }
