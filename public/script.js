@@ -1061,6 +1061,11 @@ function listenForCalls() {
             console.log('🔄 autoAddContact呼び出し中...');
             autoAddContact(data.from, data.fromName);
 
+            // 着信時に通話終了通知をリスン開始（発信者がキャンセルした場合の検知）
+            if (!endCallListener) {
+                listenForEndCall();
+            }
+
             // 着信表示
             document.getElementById('incomingCall').classList.add('active');
             document.getElementById('callerName').textContent = `${data.fromName || data.from}から着信`;
@@ -1212,14 +1217,27 @@ function listenForEndCall() {
     const endCallRef = database.ref(`calls/${userId}/end-call`);
     endCallListener = endCallRef.on('value', (snapshot) => {
         const data = snapshot.val();
-        if (data && currentCall) {
-            console.log('📞 相手が通話を終了しました');
-            showNotification('相手が通話を終了しました 📞');
-            // リスナーを削除してから通話終了処理を実行（無限ループ防止）
-            database.ref(`calls/${userId}/end-call`).off('value', endCallListener);
-            endCallListener = null;
-            // 受信者側でも通話終了処理を実行
-            endCall();
+        if (data) {
+            console.log('📞 相手が通話を終了/キャンセルしました');
+
+            // 着信画面が表示されている場合は閉じる
+            const incomingCallElement = document.getElementById('incomingCall');
+            if (incomingCallElement.classList.contains('active')) {
+                incomingCallElement.classList.remove('active');
+                showNotification('着信がキャンセルされました 📞');
+                incomingOffer = null;
+            }
+
+            // 通話中の場合は通話終了処理
+            if (currentCall) {
+                showNotification('相手が通話を終了しました 📞');
+                // リスナーを削除してから通話終了処理を実行（無限ループ防止）
+                database.ref(`calls/${userId}/end-call`).off('value', endCallListener);
+                endCallListener = null;
+                // 受信者側でも通話終了処理を実行
+                endCall();
+            }
+
             // 通知データを削除
             endCallRef.remove();
         }
@@ -1355,14 +1373,16 @@ function stopRecording() {
 async function endCall() {
     console.log('通話終了処理開始');
 
-    // 相手に通話終了を通知
+    // 相手に通話終了を通知（呼び出し中でも通話中でも）
     if (currentCall && database) {
         try {
             await database.ref(`calls/${currentCall.id}/end-call`).set({
                 from: userId,
                 timestamp: Date.now()
             });
-            console.log('📞 相手に通話終了通知送信');
+            // オファーも削除して着信を止める
+            await database.ref(`calls/${currentCall.id}/offer`).remove();
+            console.log('📞 相手に通話終了通知送信 & オファー削除');
         } catch (error) {
             console.error('通話終了通知エラー:', error);
         }
