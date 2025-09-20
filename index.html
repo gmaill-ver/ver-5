@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>#つながる# - Quick Call</title>
+    
+    <!-- PWA設定 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <!-- スタイルシート -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="app-header">
+            <h1 class="app-title">#つながる#</h1>
+            <p class="app-subtitle">大切な人とワンタップで</p>
+        </div>
+
+        <!-- ナビゲーションタブ -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('home')">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">ホーム</span>
+            </button>
+            <button class="nav-tab" onclick="showTab('contacts')">
+                <span class="nav-icon">📞</span>
+                <span class="nav-label">連絡先</span>
+            </button>
+            <button class="nav-tab" onclick="showTab('settings')">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">設定</span>
+            </button>
+        </div>
+
+        <!-- ホームタブ -->
+        <div id="homeTab" class="tab-content active">
+            <div class="glass-card user-id-card">
+                <div class="user-id-label">あなたのID</div>
+                <div class="user-id" id="userId">生成中...</div>
+                <button class="copy-btn" onclick="copyUserId()">📋 IDをコピー</button>
+            </div>
+
+            <div class="glass-card add-contact-card">
+                <h3 class="section-title">友達を追加</h3>
+                <div class="input-group">
+                    <input type="text" id="contactName" class="input-field" placeholder="ニックネーム" autocomplete="off">
+                    <input type="text" id="contactId" class="input-field" placeholder="相手のID" autocomplete="off">
+                </div>
+                <button class="add-btn" onclick="addContact()">追加する</button>
+            </div>
+
+            <div class="glass-card favorites-section">
+                <h3 class="favorites-title">スピードダイヤル</h3>
+                <div class="favorites-grid" id="favoritesGrid">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📱</div>
+                        <p>友達を追加してワンタップ通話！</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 連絡先タブ -->
+        <div id="contactsTab" class="tab-content">
+            <div class="glass-card">
+                <h3 class="section-title">
+                    <span>連絡先リスト</span>
+                    <span class="contact-count" id="contactCount">0件</span>
+                </h3>
+                <div class="contacts-list" id="contactsList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>まだ連絡先がありません</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 設定タブ -->
+        <div id="settingsTab" class="tab-content">
+            <div class="glass-card">
+                <h3 class="section-title">設定</h3>
+                
+                <div class="settings-item">
+                    <label for="userName">あなたの名前</label>
+                    <input type="text" id="userName" class="input-field" placeholder="表示名を入力">
+                    <button class="save-btn" onclick="saveUserName()">保存</button>
+                </div>
+
+                <div class="settings-item">
+                    <label>通知設定</label>
+                    <button class="notification-btn" onclick="requestNotificationPermission()">
+                        通知を有効にする
+                    </button>
+                </div>
+
+                <div class="settings-item">
+                    <label>PWAインストール</label>
+                    <button class="install-btn" id="installBtn" style="display:none;" onclick="installPWA()">
+                        アプリをインストール
+                    </button>
+                    <p class="settings-hint">ホーム画面に追加してオフラインでも使用可能</p>
+                </div>
+
+                <div class="settings-item">
+                    <label>データ管理</label>
+                    <button class="export-btn" onclick="exportContacts()">連絡先をエクスポート</button>
+                    <button class="import-btn" onclick="document.getElementById('importFile').click()">
+                        連絡先をインポート
+                    </button>
+                    <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importContacts(event)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通話パネル -->
+    <div class="call-panel" id="callPanel">
+        <div class="calling-avatar">📞</div>
+        <div class="calling-name" id="callingName">通話中...</div>
+        <div class="call-status" id="callStatus">接続中...</div>
+        <div class="call-timer" id="callTimer">00:00</div>
+        <div class="call-controls">
+            <button class="control-btn mute-btn" id="muteBtn" onclick="toggleMute()">
+                🎤
+            </button>
+            <button class="control-btn speaker-btn" id="speakerBtn" onclick="toggleSpeaker()">
+                🔊
+            </button>
+            <button class="control-btn record-btn" id="recordBtn" onclick="toggleRecord()">
+                ⏺️
+            </button>
+            <button class="control-btn end-call-btn" onclick="endCall()">
+                ☎️
+            </button>
+        </div>
+    </div>
+
+    <!-- 着信画面 -->
+    <div class="incoming-call" id="incomingCall">
+        <div class="incoming-avatar">📞</div>
+        <div class="incoming-name" id="callerName">着信中...</div>
+        <div class="incoming-actions">
+            <button class="accept-btn" onclick="acceptCall()">応答</button>
+            <button class="reject-btn" onclick="rejectCall()">拒否</button>
+        </div>
+    </div>
+
+    <!-- 通知 -->
+    <div class="notification" id="notification"></div>
+
+    <!-- ステータス表示 -->
+    <div class="status-indicator" id="statusIndicator">
+        接続状態確認中...
+    </div>
+
+    <!-- リモートオーディオ -->
+    <audio id="remoteAudio" autoplay></audio>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
+
+    <!-- Service Worker 登録 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then((reg) => {
+                console.log('Service Worker registered:', reg);
+            }).catch((error) => {
+                console.error('Service Worker registration failed:', error);
+            });
+        }
+    </script>
+
+    <!-- メインスクリプト -->
+    <script src="script.js"></script>
+</body>
+</html>
