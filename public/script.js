@@ -1,4 +1,5 @@
 // Firebase設定
+// 注意: 本番環境では環境変数や設定ファイルから読み込むことを推奨
 const firebaseConfig = {
     apiKey: "AIzaSyC16_eHOmV0nVtabM_9ce4mdwnMJ8b_Ksw",
     authDomain: "tunagaruyo-e10ba.firebaseapp.com",
@@ -380,7 +381,7 @@ function renderContactsList() {
         const item = document.createElement('div');
         item.className = 'contact-list-item';
         item.innerHTML = `
-            <div class="contact-info" onclick="startCall('${contact.id}', '${contact.name}')">
+            <div class="contact-info" onclick="startCall({id: '${contact.id}', name: '${contact.name}'})">
                 <div class="contact-avatar">👤</div>
                 <div class="contact-details">
                     <div class="contact-list-name">${contact.name}</div>

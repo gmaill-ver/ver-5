@@ -7,109 +7,379 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
-    background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 50%, #45B7D1 100%);
+    background: #f8f9fa;
     min-height: 100vh;
     padding: 20px;
     padding-bottom: 80px;
-    position: relative;
-    overflow-x: hidden;
-}
-
-body::before {
-    content: '';
-    position: fixed;
-    top: -50%;
-    right: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
-    background-size: 20px 20px;
-    animation: float 20s linear infinite;
-    pointer-events: none;
-}
-
-@keyframes float {
-    0% { transform: translate(0, 0) rotate(0deg); }
-    100% { transform: translate(-50px, -50px) rotate(360deg); }
+    color: #333;
 }
 
 /* コンテナ */
 .app-container {
     max-width: 400px;
     margin: 0 auto;
-    position: relative;
-    z-index: 1;
 }
 
 /* ヘッダー */
 .app-header {
     text-align: center;
-    margin-bottom: 20px;
-    animation: bounceIn 0.6s;
+    margin-bottom: 30px;
+    padding: 20px 0;
 }
 
 .app-title {
-    font-size: 2.5em;
-    font-weight: 900;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-    margin-bottom: 5px;
-    letter-spacing: -1px;
+    font-size: 2.2em;
+    font-weight: 700;
+    color: #2563eb;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
 }
 
 .app-subtitle {
-    color: white;
+    color: #6b7280;
     font-size: 0.9em;
-    font-weight: 500;
-    opacity: 0.95;
+    font-weight: 400;
 }
 
 /* ナビゲーションタブ */
 .nav-tabs {
     display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    background: rgba(255,255,255,0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    background: white;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
 }
 
 .nav-tab {
     flex: 1;
     background: transparent;
     border: none;
-    padding: 12px 10px;
-    border-radius: 15px;
+    padding: 12px 8px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.2s;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    color: #999;
+    color: #6b7280;
+    font-size: 0.85em;
 }
 
 .nav-tab:hover {
-    background: rgba(103,126,234,0.1);
+    background: #f3f4f6;
+    color: #374151;
 }
 
 .nav-tab.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #2563eb;
     color: white;
+    font-weight: 500;
 }
 
 .nav-icon {
-    font-size: 1.4em;
+    font-size: 1.2em;
 }
 
 .nav-label {
+    font-size: 0.75em;
+    font-weight: 500;
+}
+
+/* カード */
+.glass-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* ユーザーIDカード */
+.user-id-label {
     font-size: 0.8em;
+    color: #6b7280;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.user-id {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: #2563eb;
+    font-family: 'SF Mono', Monaco, monospace;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    text-align: center;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 2px dashed #cbd5e1;
+}
+
+.copy-btn {
+    width: 100%;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.copy-btn:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+}
+
+/* セクションタイトル */
+.section-title {
+    font-size: 1.1em;
     font-weight: 600;
+    color: #374151;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: between;
+    align-items: center;
+}
+
+/* 入力フォーム */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.input-field {
+    padding: 12px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: border-color 0.2s;
+    background: white;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.input-field::placeholder {
+    color: #9ca3af;
+}
+
+/* ボタン */
+.add-btn {
+    width: 100%;
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.add-btn:hover {
+    background: #1d4ed8;
+}
+
+/* お気に入りグリッド */
+.favorites-title {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 16px;
+}
+
+.favorites-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.contact-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.contact-card:hover {
+    background: #2563eb;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.contact-icon {
+    font-size: 2em;
+    margin-bottom: 8px;
+}
+
+.contact-name {
+    font-weight: 600;
+    font-size: 0.9em;
+    margin-bottom: 4px;
+}
+
+.contact-status {
+    font-size: 0.75em;
+    opacity: 0.8;
+}
+
+/* 連絡先リスト */
+.contact-count {
+    font-size: 0.8em;
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.contact-list-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.contact-list-item:last-child {
+    border-bottom: none;
+}
+
+.contact-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.contact-avatar {
+    width: 40px;
+    height: 40px;
+    background: #f3f4f6;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+}
+
+.contact-details {
+    flex: 1;
+}
+
+.contact-list-name {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.contact-list-id {
+    font-size: 0.8em;
+    color: #6b7280;
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+.contact-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.call-btn, .delete-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1em;
+    transition: all 0.2s;
+}
+
+.call-btn {
+    background: #10b981;
+    color: white;
+}
+
+.call-btn:hover {
+    background: #059669;
+}
+
+.delete-btn {
+    background: #ef4444;
+    color: white;
+}
+
+.delete-btn:hover {
+    background: #dc2626;
+}
+
+/* 設定項目 */
+.settings-item {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.settings-item:last-child {
+    border-bottom: none;
+}
+
+.settings-item label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #374151;
+}
+
+.save-btn, .notification-btn, .install-btn, .export-btn, .import-btn {
+    background: #6b7280;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    margin-top: 8px;
+    margin-right: 8px;
+    transition: background-color 0.2s;
+}
+
+.save-btn:hover, .notification-btn:hover, .install-btn:hover,
+.export-btn:hover, .import-btn:hover {
+    background: #4b5563;
+}
+
+.settings-hint {
+    font-size: 0.8em;
+    color: #6b7280;
+    margin-top: 8px;
+}
+
+/* 空の状態 */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+}
+
+.empty-state-icon {
+    font-size: 3em;
+    margin-bottom: 12px;
+    opacity: 0.5;
 }
 
 /* タブコンテンツ */
@@ -121,364 +391,19 @@ body::before {
     display: block;
 }
 
-/* カード */
-.glass-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 24px;
-    padding: 25px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-    animation: slideUp 0.5s ease-out;
-}
-
-/* ユーザーIDカード */
-.user-id-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
-
-.user-id-card::before {
-    content: '🎯';
-    position: absolute;
-    font-size: 100px;
-    opacity: 0.1;
-    right: -20px;
-    top: -20px;
-    animation: rotate 10s linear infinite;
-}
-
-@keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-.user-id-label {
-    font-size: 0.9em;
-    opacity: 0.9;
-    margin-bottom: 8px;
-}
-
-.user-id {
-    font-family: 'Courier New', monospace;
-    font-size: 1.8em;
-    font-weight: bold;
-    letter-spacing: 2px;
-    margin: 10px 0;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-}
-
-.copy-btn {
-    background: rgba(255,255,255,0.3);
-    color: white;
-    border: 2px solid rgba(255,255,255,0.5);
-    padding: 10px 24px;
-    border-radius: 50px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-size: 0.9em;
-    position: relative;
-    z-index: 1;
-}
-
-.copy-btn:hover {
-    background: rgba(255,255,255,0.4);
-    transform: scale(1.05);
-}
-
-/* セクションタイトル */
-.section-title {
-    font-size: 1.1em;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.contact-count {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.85em;
-}
-
-/* インプットフィールド */
-.input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 15px;
-}
-
-.input-field {
-    width: 100%;
-    padding: 14px 18px;
-    border: 2px solid #f0f0f0;
-    border-radius: 16px;
-    font-size: 1em;
-    transition: all 0.3s;
-    background: #fafafa;
-}
-
-.input-field:focus {
-    outline: none;
-    border-color: #4ECDC4;
-    background: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(78,205,196,0.2);
-}
-
-/* ボタン */
-.add-btn, .save-btn, .notification-btn, .install-btn, .export-btn, .import-btn {
-    width: 100%;
-    background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);
-    color: white;
-    border: none;
-    padding: 14px;
-    border-radius: 16px;
-    font-size: 1em;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.add-btn:hover, .save-btn:hover, .notification-btn:hover, 
-.install-btn:hover, .export-btn:hover, .import-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(78,205,196,0.4);
-}
-
-/* お気に入りセクション */
-.favorites-title {
-    font-size: 1.1em;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.favorites-title::before {
-    content: '⭐';
-    font-size: 1.2em;
-}
-
-.favorites-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-}
-
-/* 連絡先カード */
-.contact-card {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    padding: 20px;
-    border-radius: 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s;
-    position: relative;
-    overflow: hidden;
-    color: white;
-}
-
-.contact-card:nth-child(2n) {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.contact-card:nth-child(3n) {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-}
-
-.contact-card:nth-child(4n) {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-}
-
-.contact-card::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    background: rgba(255,255,255,0.3);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    transition: width 0.6s, height 0.6s;
-}
-
-.contact-card:hover::before {
-    width: 200px;
-    height: 200px;
-}
-
-.contact-card:hover {
-    transform: translateY(-5px) scale(1.05);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-}
-
-.contact-icon {
-    font-size: 2.5em;
-    margin-bottom: 10px;
-    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
-}
-
-.contact-name {
-    font-weight: 700;
-    font-size: 1.1em;
-    margin-bottom: 5px;
-}
-
-.contact-status {
-    font-size: 0.85em;
-    opacity: 0.9;
-}
-
-/* 連絡先リスト */
-.contacts-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.contact-list-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 15px;
-    background: #f8f8f8;
-    border-radius: 16px;
-    transition: all 0.3s;
-}
-
-.contact-list-item:hover {
-    background: #f0f0f0;
-    transform: translateX(5px);
-}
-
-.contact-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    cursor: pointer;
-}
-
-.contact-avatar {
-    width: 45px;
-    height: 45px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2em;
-}
-
-.contact-details {
-    display: flex;
-    flex-direction: column;
-}
-
-.contact-list-name {
-    font-weight: 600;
-    color: #333;
-}
-
-.contact-list-id {
-    font-size: 0.85em;
-    color: #999;
-    font-family: 'Courier New', monospace;
-}
-
-.contact-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.call-btn, .delete-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2em;
-}
-
-.call-btn {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-    color: white;
-}
-
-.delete-btn {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-}
-
-.call-btn:hover, .delete-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-/* 空の状態 */
-.empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: #999;
-}
-
-.empty-state-icon {
-    font-size: 3em;
-    margin-bottom: 10px;
-    opacity: 0.5;
-}
-
-/* 設定項目 */
-.settings-item {
-    margin-bottom: 25px;
-}
-
-.settings-item label {
-    display: block;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 10px;
-}
-
-.settings-hint {
-    font-size: 0.85em;
-    color: #999;
-    margin-top: 8px;
-}
-
 /* 通話パネル */
 .call-panel {
-    display: none;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    z-index: 1000;
+    background: rgba(0,0,0,0.95);
+    display: none;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
+    z-index: 1000;
     color: white;
 }
 
@@ -487,167 +412,121 @@ body::before {
 }
 
 .calling-avatar {
-    width: 120px;
-    height: 120px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3em;
+    font-size: 4em;
     margin-bottom: 20px;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.1); opacity: 0.8; }
+    opacity: 0.8;
 }
 
 .calling-name {
-    font-size: 2em;
-    font-weight: 700;
-    margin-bottom: 10px;
+    font-size: 1.5em;
+    font-weight: 600;
+    margin-bottom: 8px;
 }
 
 .call-status {
-    font-size: 1.1em;
-    opacity: 0.9;
-    margin-bottom: 20px;
+    font-size: 1em;
+    opacity: 0.7;
+    margin-bottom: 8px;
 }
 
 .call-timer {
-    font-size: 2em;
-    font-family: 'Courier New', monospace;
+    font-size: 1.2em;
+    font-weight: 500;
     margin-bottom: 40px;
-    font-weight: 300;
+    font-family: 'SF Mono', Monaco, monospace;
 }
 
 .call-controls {
     display: flex;
     gap: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
 }
 
 .control-btn {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
+    width: 60px;
+    height: 60px;
     border: none;
+    border-radius: 50%;
     cursor: pointer;
-    transition: all 0.3s;
-    font-size: 1.8em;
+    font-size: 1.5em;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-
-.control-btn:hover {
-    transform: scale(1.1);
 }
 
 .mute-btn, .speaker-btn, .record-btn {
-    background: rgba(255,255,255,0.2);
+    background: #4b5563;
     color: white;
 }
 
-.mute-btn.active {
-    background: #e53e3e;
-}
-
-.speaker-btn.active {
-    background: #48bb78;
-}
-
-.record-btn.active {
-    background: #ed8936;
-    animation: recording 1.5s infinite;
-}
-
-@keyframes recording {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+.mute-btn.active, .speaker-btn.active, .record-btn.active {
+    background: #2563eb;
 }
 
 .end-call-btn {
-    background: #e53e3e;
+    background: #ef4444;
     color: white;
-    width: 80px;
-    height: 80px;
+}
+
+.end-call-btn:hover {
+    background: #dc2626;
 }
 
 /* 着信画面 */
 .incoming-call {
-    display: none;
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 40px 30px;
-    border-radius: 24px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    z-index: 2000;
-    text-align: center;
-    min-width: 320px;
-    animation: shake 0.5s;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.95);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    color: white;
 }
 
 .incoming-call.active {
-    display: block;
-}
-
-@keyframes shake {
-    0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
-    25% { transform: translate(-50%, -50%) rotate(-3deg); }
-    75% { transform: translate(-50%, -50%) rotate(3deg); }
+    display: flex;
 }
 
 .incoming-avatar {
-    width: 80px;
-    height: 80px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2em;
-    margin: 0 auto 20px;
-    animation: pulse 1s infinite;
+    font-size: 4em;
+    margin-bottom: 20px;
+    opacity: 0.8;
 }
 
 .incoming-name {
     font-size: 1.5em;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 20px;
+    font-weight: 600;
+    margin-bottom: 40px;
 }
 
 .incoming-actions {
     display: flex;
-    gap: 15px;
-    justify-content: center;
+    gap: 40px;
 }
 
 .accept-btn, .reject-btn {
-    padding: 15px 35px;
+    width: 80px;
+    height: 80px;
     border: none;
-    border-radius: 50px;
-    font-size: 1em;
-    font-weight: 600;
+    border-radius: 50%;
     cursor: pointer;
-    transition: all 0.3s;
+    font-size: 1.8em;
+    font-weight: 600;
+    transition: all 0.2s;
 }
 
 .accept-btn {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: #10b981;
     color: white;
 }
 
 .reject-btn {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: #ef4444;
     color: white;
 }
 
@@ -655,64 +534,84 @@ body::before {
 .notification {
     position: fixed;
     top: 20px;
-    right: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
     background: white;
     color: #333;
-    padding: 15px 25px;
-    border-radius: 50px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-    transform: translateX(400px);
-    transition: transform 0.3s;
-    z-index: 3000;
-    font-weight: 600;
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    z-index: 2000;
+    opacity: 0;
+    transition: all 0.3s;
+    border: 1px solid #e5e7eb;
+    font-weight: 500;
 }
 
 .notification.show {
-    transform: translateX(0);
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
 }
 
-/* ステータスインジケーター */
+/* ステータス表示 */
 .status-indicator {
     position: fixed;
     bottom: 20px;
     left: 20px;
-    background: rgba(255,255,255,0.9);
-    padding: 10px 20px;
-    border-radius: 50px;
-    font-size: 0.85em;
-    font-weight: 600;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    background: white;
+    color: #333;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
     z-index: 100;
 }
 
 .status-indicator.online {
-    color: #48bb78;
+    border-color: #10b981;
+    color: #10b981;
 }
 
 .status-indicator.offline {
-    color: #e53e3e;
+    border-color: #ef4444;
+    color: #ef4444;
 }
 
-/* アニメーション */
-@keyframes slideUp {
-    from { 
-        opacity: 0;
-        transform: translateY(30px);
+/* レスポンシブ対応 */
+@media (max-width: 480px) {
+    body {
+        padding: 10px;
+        padding-bottom: 70px;
     }
-    to { 
-        opacity: 1;
-        transform: translateY(0);
+
+    .app-container {
+        max-width: 100%;
     }
-}
 
-@keyframes bounceIn {
-    0% { transform: scale(0.3); opacity: 0; }
-    50% { transform: scale(1.05); }
-    70% { transform: scale(0.9); }
-    100% { transform: scale(1); opacity: 1; }
-}
+    .app-title {
+        font-size: 2em;
+    }
 
-/* リモートオーディオ */
-#remoteAudio {
-    display: none;
+    .glass-card {
+        padding: 16px;
+    }
+
+    .favorites-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
+    }
+
+    .contact-card {
+        padding: 12px;
+    }
+
+    .nav-tab {
+        padding: 10px 6px;
+    }
+
+    .nav-label {
+        font-size: 0.7em;
+    }
 }
