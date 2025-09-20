@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>#つながる# - Quick Call</title>
+    <title>#つながる - Quick Call</title>
     
     <!-- PWA設定 -->
     <link rel="manifest" href="/manifest.json">
@@ -18,7 +18,7 @@
 <body>
     <div class="app-container">
         <div class="app-header">
-            <h1 class="app-title">#つながる#</h1>
+            <h1 class="app-title">#つながる</h1>
             <p class="app-subtitle">大切な人とワンタップで</p>
         </div>
 
@@ -118,6 +118,14 @@
                     <button class="notification-btn" onclick="requestNotificationPermission()">
                         通知を有効にする
                     </button>
+                </div>
+
+                <div class="settings-item">
+                    <label>着信音</label>
+                    <button class="ringtone-btn" onclick="downloadRingtone()">
+                        着信音をダウンロード
+                    </button>
+                    <p class="settings-hint">アプリで使用している着信音をダウンロード</p>
                 </div>
 
                 <div class="settings-item">
