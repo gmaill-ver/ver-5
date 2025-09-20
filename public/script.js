@@ -30,6 +30,7 @@ let iceCandidatesQueue = [];
 let offerListener = null;
 let answerListener = null;
 let iceListener = null;
+let endCallListener = null;
 let callTimeout = null;
 let deferredPrompt = null;
 
@@ -154,6 +155,8 @@ async function init() {
 
         // 着信リスナー
         listenForCalls();
+        // 通話終了通知リスナー
+        listenForEndCall();
         
         // FCMトークン取得（バックグラウンド通知用）
         setupFCM();
@@ -1200,6 +1203,29 @@ async function sendRejectNotification(targetId) {
     }
 }
 
+// 通話終了通知をリスンする
+function listenForEndCall() {
+    if (endCallListener) {
+        database.ref(`calls/${userId}/end-call`).off('value', endCallListener);
+    }
+
+    const endCallRef = database.ref(`calls/${userId}/end-call`);
+    endCallListener = endCallRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && currentCall) {
+            console.log('📞 相手が通話を終了しました');
+            showNotification('相手が通話を終了しました 📞');
+            // リスナーを削除してから通話終了処理を実行（無限ループ防止）
+            database.ref(`calls/${userId}/end-call`).off('value', endCallListener);
+            endCallListener = null;
+            // 受信者側でも通話終了処理を実行
+            endCall();
+            // 通知データを削除
+            endCallRef.remove();
+        }
+    });
+}
+
 // 拒否通知のリスナー
 function listenForReject(targetId) {
     const rejectRef = database.ref(`calls/${userId}/rejected`);
@@ -1329,6 +1355,19 @@ function stopRecording() {
 async function endCall() {
     console.log('通話終了処理開始');
 
+    // 相手に通話終了を通知
+    if (currentCall && database) {
+        try {
+            await database.ref(`calls/${currentCall.id}/end-call`).set({
+                from: userId,
+                timestamp: Date.now()
+            });
+            console.log('📞 相手に通話終了通知送信');
+        } catch (error) {
+            console.error('通話終了通知エラー:', error);
+        }
+    }
+
     // タイムアウトクリア
     if (callTimeout) {
         clearTimeout(callTimeout);
@@ -1414,6 +1453,10 @@ async function endCall() {
     // 着信リスナーを再開
     if (database && !offerListener) {
         listenForCalls();
+    }
+    // 通話終了通知リスナーを再開
+    if (database && !endCallListener) {
+        listenForEndCall();
     }
     
     console.log('通話終了処理完了');

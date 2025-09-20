@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tunagaru-v2.2.0'; // バージョンを上げて強制更新
+const CACHE_NAME = 'tunagaru-v2.3.0'; // バージョンを上げて強制更新
 const urlsToCache = [
   '/',
   '/index.html',
