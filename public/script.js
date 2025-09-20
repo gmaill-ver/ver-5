@@ -100,7 +100,11 @@ function showTab(tabName) {
     
     // 連絡先タブの場合、リストを更新
     if (tabName === 'contacts') {
-        renderContactsList();
+        setTimeout(() => {
+            renderContactsList();
+            updateContactCount();
+            console.log('📋 連絡先タブ表示時の強制更新:', contacts.length);
+        }, 50);
     }
 }
 
@@ -275,6 +279,17 @@ function copyUserId() {
     });
 }
 
+// デバッグ用：連絡先の内容を表示
+function debugContacts() {
+    console.log('📋 現在の連絡先一覧:', contacts);
+    console.log('📋 ローカルストレージ:', localStorage.getItem('contacts'));
+    console.log('📋 セッションストレージ:', sessionStorage.getItem('contacts'));
+    return contacts;
+}
+
+// グローバルスコープでデバッグ関数を利用可能にする
+window.debugContacts = debugContacts;
+
 // 自動連絡先追加（着信時）
 function autoAddContact(contactId, contactName) {
     console.log('🔍 autoAddContact called:', {contactId, contactName, userId, contacts: contacts.length});
@@ -308,6 +323,15 @@ function autoAddContact(contactId, contactName) {
 
     console.log(`🎉 着信から自動追加完了: ${newContact.name} (${contactId})`);
     showNotification(`📞 ${newContact.name} を連絡先に追加しました`);
+
+    // UI強制更新（連絡先タブが表示されている場合）
+    const activeTab = document.querySelector('.nav-tab.active');
+    if (activeTab && activeTab.textContent.includes('連絡先')) {
+        setTimeout(() => {
+            renderContactsList();
+            updateContactCount();
+        }, 100);
+    }
 }
 
 // 連絡先追加
