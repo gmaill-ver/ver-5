@@ -122,23 +122,77 @@
 
                 <div class="settings-item">
                     <label>着信音設定</label>
-                    <div class="sound-settings">
-                        <button class="ringtone-btn" onclick="downloadRingtone()">
-                            デフォルト着信音をダウンロード
-                        </button>
-                        <button class="upload-btn" onclick="document.getElementById('ringtoneFile').click()">
-                            着信音をアップロード
-                        </button>
-                        <input type="file" id="ringtoneFile" accept="audio/*" style="display:none;" onchange="uploadRingtone(event)">
-                        <button class="test-btn" onclick="testRingtone()">
-                            着信音をテスト
-                        </button>
+
+                    <!-- 内蔵着信音 -->
+                    <div class="ringtone-section">
+                        <h4 class="ringtone-category">🎵 内蔵着信音</h4>
+                        <div class="ringtone-grid" id="builtinRingtones">
+                            <!-- 内蔵着信音がここに表示されます -->
+                        </div>
+                    </div>
+
+                    <!-- カスタムアップロード -->
+                    <div class="ringtone-section">
+                        <h4 class="ringtone-category">📁 カスタム着信音</h4>
+                        <div class="upload-area" id="uploadArea" ondrop="dropHandler(event)" ondragover="dragOverHandler(event)" ondragenter="dragEnterHandler(event)" ondragleave="dragLeaveHandler(event)">
+                            <div class="upload-content">
+                                <div class="upload-icon">📁</div>
+                                <p>音声ファイルをドラッグ&ドロップ</p>
+                                <p class="upload-hint">または</p>
+                                <button class="upload-btn" onclick="document.getElementById('ringtoneFile').click()">
+                                    ファイルを選択
+                                </button>
+                                <input type="file" id="ringtoneFile" accept="audio/*,.mp3,.wav,.m4a,.ogg" style="display:none;" onchange="uploadRingtone(event)" multiple>
+                                <p class="upload-info">MP3, WAV, M4A, OGG対応 (最大10MB)</p>
+                            </div>
+                        </div>
+                        <div class="custom-ringtones" id="customRingtones">
+                            <!-- カスタム着信音がここに表示されます -->
+                        </div>
+                    </div>
+
+                    <!-- 音声合成 -->
+                    <div class="ringtone-section">
+                        <h4 class="ringtone-category">🗣️ 音声メッセージ</h4>
+                        <div class="voice-synthesis">
+                            <input type="text" id="voiceMessage" class="input-field" placeholder="メッセージを入力（例：田中さんから着信です）" maxlength="50">
+                            <div class="voice-controls">
+                                <select id="voiceSelect" class="voice-select">
+                                    <option value="">音声を選択...</option>
+                                </select>
+                                <button class="test-btn" onclick="testVoiceSynthesis()">テスト</button>
+                                <button class="save-voice-btn" onclick="saveVoiceRingtone()">着信音に設定</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 自動生成 -->
+                    <div class="ringtone-section">
+                        <h4 class="ringtone-category">🎼 メロディ生成</h4>
+                        <div class="melody-generator">
+                            <div class="generator-controls">
+                                <select id="melodyType" class="melody-select">
+                                    <option value="classic">クラシック</option>
+                                    <option value="electronic">エレクトロニック</option>
+                                    <option value="nature">自然音</option>
+                                    <option value="chime">チャイム</option>
+                                    <option value="bell">ベル</option>
+                                </select>
+                                <button class="generate-btn" onclick="generateMelody()">生成</button>
+                                <button class="test-btn" onclick="testGeneratedMelody()">テスト</button>
+                                <button class="save-melody-btn" onclick="saveGeneratedMelody()">保存</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 現在の設定 -->
+                    <div class="current-ringtone-display">
                         <div class="current-sound">
                             <span>現在の着信音: </span>
                             <span id="currentRingtone">デフォルト</span>
+                            <button class="test-current-btn" onclick="testCurrentRingtone()">🔊</button>
                         </div>
                     </div>
-                    <p class="settings-hint">カスタム着信音をアップロードして設定できます</p>
                 </div>
 
                 <div class="settings-item">
@@ -234,6 +288,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
+
+    <!-- Tone.js for audio synthesis -->
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
 
     <!-- Service Worker 登録 -->
     <script>

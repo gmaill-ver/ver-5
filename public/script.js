@@ -35,6 +35,12 @@ let callTimeout = null;
 let deferredPrompt = null;
 let customRingtone = null;
 let customDialtone = null;
+let builtinRingtones = [];
+let customRingtones = [];
+let currentRingtoneType = 'builtin';
+let currentRingtoneId = 'default';
+let generatedMelody = null;
+let availableVoices = [];
 
 // Firebase初期化
 try {
@@ -144,6 +150,9 @@ async function init() {
 
     // 保存された音声設定を読み込み
     loadSoundSettings();
+
+    // 内蔵着信音とUI初期化
+    initializeRingtoneSystem();
 
     // Firebase リスナー設定
     if (database) {
@@ -1490,13 +1499,26 @@ async function endCall() {
     console.log('通話終了処理完了');
 }
 
-// 着信音
+// 着信音 - 新しいシステムに統合
 function playRingtone() {
-    if (customRingtone) {
-        playCustomSound(customRingtone);
-        return;
+    try {
+        if (currentRingtoneType === 'builtin') {
+            playBuiltinRingtone(currentRingtoneId);
+        } else if (currentRingtoneType === 'custom') {
+            playCustomRingtoneById(currentRingtoneId);
+        } else {
+            // フォールバック: デフォルト着信音
+            playBuiltinRingtone('default');
+        }
+    } catch (error) {
+        console.error('着信音再生エラー:', error);
+        // エラー時はシンプルなビープ音で代替
+        playFallbackRingtone();
     }
+}
 
+// フォールバック着信音
+function playFallbackRingtone() {
     try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const duration = 0.2;
@@ -1523,7 +1545,7 @@ function playRingtone() {
         setTimeout(beep, 300);
         setTimeout(beep, 600);
     } catch (error) {
-        console.error('着信音再生エラー:', error);
+        console.error('フォールバック着信音再生エラー:', error);
     }
 }
 
@@ -1684,30 +1706,238 @@ function audioBufferToWav(buffer) {
     return arrayBuffer;
 }
 
-// 音声設定の読み込み
-function loadSoundSettings() {
-    // 着信音設定の読み込み
-    const savedRingtone = localStorage.getItem('customRingtone');
-    const ringtoneName = localStorage.getItem('ringtoneName');
-    if (savedRingtone) {
-        customRingtone = savedRingtone;
-        document.getElementById('currentRingtone').textContent = ringtoneName || 'カスタム';
+// 包括的着信音システム初期化
+async function initializeRingtoneSystem() {
+    // 内蔵着信音を初期化
+    initializeBuiltinRingtones();
+
+    // 音声合成の初期化
+    initializeVoiceSynthesis();
+
+    // カスタム着信音を読み込み
+    loadCustomRingtones();
+
+    // UIを更新
+    renderRingtoneUI();
+
+    // Tone.jsの初期化
+    if (typeof Tone !== 'undefined') {
+        console.log('🎵 Tone.js loaded successfully');
+    }
+}
+
+// 内蔵着信音の定義
+function initializeBuiltinRingtones() {
+    builtinRingtones = [
+        { id: 'default', name: 'デフォルト', category: 'basic', icon: '🔔' },
+        { id: 'bell1', name: 'ベル1', category: 'bell', icon: '🔔' },
+        { id: 'bell2', name: 'ベル2', category: 'bell', icon: '🛎️' },
+        { id: 'bell3', name: 'チャーチベル', category: 'bell', icon: '⛪' },
+        { id: 'chime1', name: 'チャイム1', category: 'chime', icon: '🎵' },
+        { id: 'chime2', name: 'チャイム2', category: 'chime', icon: '🎶' },
+        { id: 'chime3', name: 'ウィンドチャイム', category: 'chime', icon: '🎐' },
+        { id: 'nature1', name: '鳥のさえずり', category: 'nature', icon: '🐦' },
+        { id: 'nature2', name: '雨音', category: 'nature', icon: '🌧️' },
+        { id: 'nature3', name: '波音', category: 'nature', icon: '🌊' },
+        { id: 'electronic1', name: 'シンセ1', category: 'electronic', icon: '🎹' },
+        { id: 'electronic2', name: 'シンセ2', category: 'electronic', icon: '🎛️' },
+        { id: 'electronic3', name: 'ビープ', category: 'electronic', icon: '📟' },
+        { id: 'classic1', name: 'クラシック1', category: 'classic', icon: '🎼' },
+        { id: 'classic2', name: 'メヌエット', category: 'classic', icon: '🎭' }
+    ];
+}
+
+// 音声合成の初期化
+function initializeVoiceSynthesis() {
+    if ('speechSynthesis' in window) {
+        // 音声リストの取得
+        function loadVoices() {
+            availableVoices = speechSynthesis.getVoices();
+            const voiceSelect = document.getElementById('voiceSelect');
+            if (voiceSelect) {
+                voiceSelect.innerHTML = '<option value="">音声を選択...</option>';
+                availableVoices.forEach((voice, index) => {
+                    if (voice.lang.startsWith('ja') || voice.lang.startsWith('en')) {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = `${voice.name} (${voice.lang})`;
+                        voiceSelect.appendChild(option);
+                    }
+                });
+            }
+        }
+
+        // 音声リストが変更された時の処理
+        speechSynthesis.addEventListener('voiceschanged', loadVoices);
+        loadVoices();
+    }
+}
+
+// カスタム着信音の読み込み
+function loadCustomRingtones() {
+    const saved = localStorage.getItem('customRingtones');
+    if (saved) {
+        try {
+            customRingtones = JSON.parse(saved);
+        } catch (error) {
+            console.error('カスタム着信音の読み込みエラー:', error);
+            customRingtones = [];
+        }
+    }
+}
+
+// カスタム着信音の保存
+function saveCustomRingtones() {
+    localStorage.setItem('customRingtones', JSON.stringify(customRingtones));
+}
+
+// 着信音UIの描画
+function renderRingtoneUI() {
+    renderBuiltinRingtones();
+    renderCustomRingtones();
+}
+
+// 内蔵着信音の描画
+function renderBuiltinRingtones() {
+    const container = document.getElementById('builtinRingtones');
+    if (!container) return;
+
+    container.innerHTML = '';
+    builtinRingtones.forEach(ringtone => {
+        const item = document.createElement('div');
+        item.className = `ringtone-item ${currentRingtoneType === 'builtin' && currentRingtoneId === ringtone.id ? 'selected' : ''}`;
+        item.innerHTML = `
+            <div class="ringtone-icon">${ringtone.icon}</div>
+            <div class="ringtone-name">${ringtone.name}</div>
+            <div class="ringtone-actions">
+                <button class="ringtone-play-btn" onclick="playBuiltinRingtone('${ringtone.id}')">▶️</button>
+                <button class="ringtone-select-btn" onclick="selectBuiltinRingtone('${ringtone.id}')">選択</button>
+            </div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+// カスタム着信音の描画
+function renderCustomRingtones() {
+    const container = document.getElementById('customRingtones');
+    if (!container) return;
+
+    container.innerHTML = '';
+    customRingtones.forEach((ringtone, index) => {
+        const item = document.createElement('div');
+        item.className = `ringtone-item ${currentRingtoneType === 'custom' && currentRingtoneId === ringtone.id ? 'selected' : ''}`;
+        item.innerHTML = `
+            <div class="ringtone-icon">🎵</div>
+            <div class="ringtone-name">${ringtone.name}</div>
+            <div class="ringtone-actions">
+                <button class="ringtone-play-btn" onclick="playCustomRingtoneById('${ringtone.id}')">▶️</button>
+                <button class="ringtone-select-btn" onclick="selectCustomRingtone('${ringtone.id}')">選択</button>
+                <button class="ringtone-delete-btn" onclick="deleteCustomRingtone('${ringtone.id}')">🗑️</button>
+            </div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+// 内蔵着信音の再生
+async function playBuiltinRingtone(id) {
+    if (typeof Tone === 'undefined') {
+        console.error('Tone.js not loaded');
+        return;
     }
 
-    // 発信音設定の読み込み
+    try {
+        // Tone.jsを使って各着信音を生成・再生
+        await Tone.start();
+
+        const ringtone = builtinRingtones.find(r => r.id === id);
+        if (!ringtone) return;
+
+        switch (id) {
+            case 'default':
+                await playDefaultTone();
+                break;
+            case 'bell1':
+                await playBell1();
+                break;
+            case 'bell2':
+                await playBell2();
+                break;
+            case 'bell3':
+                await playChurchBell();
+                break;
+            case 'chime1':
+                await playChime1();
+                break;
+            case 'chime2':
+                await playChime2();
+                break;
+            case 'chime3':
+                await playWindChime();
+                break;
+            case 'nature1':
+                await playBirdSong();
+                break;
+            case 'nature2':
+                await playRainSound();
+                break;
+            case 'nature3':
+                await playWaveSound();
+                break;
+            case 'electronic1':
+                await playSynth1();
+                break;
+            case 'electronic2':
+                await playSynth2();
+                break;
+            case 'electronic3':
+                await playBeep();
+                break;
+            case 'classic1':
+                await playClassic1();
+                break;
+            case 'classic2':
+                await playMenuet();
+                break;
+        }
+    } catch (error) {
+        console.error('着信音再生エラー:', error);
+        showNotification('着信音の再生に失敗しました', 'error');
+    }
+}
+
+// 音声設定の読み込み
+function loadSoundSettings() {
+    // 新しい着信音設定の読み込み
+    const savedRingtoneType = localStorage.getItem('currentRingtoneType');
+    const savedRingtoneId = localStorage.getItem('currentRingtoneId');
+
+    if (savedRingtoneType && savedRingtoneId) {
+        currentRingtoneType = savedRingtoneType;
+        currentRingtoneId = savedRingtoneId;
+    }
+
+    // 発信音設定の読み込み (既存)
     const savedDialtone = localStorage.getItem('customDialtone');
     const dialtoneName = localStorage.getItem('dialtoneName');
     if (savedDialtone) {
         customDialtone = savedDialtone;
-        document.getElementById('currentDialtone').textContent = dialtoneName || 'カスタム';
+        const element = document.getElementById('currentDialtone');
+        if (element) element.textContent = dialtoneName || 'カスタム';
     }
+
+    // UIを更新
+    updateCurrentRingtoneDisplay();
 }
 
 // 音声設定の保存
 function saveSoundSettings() {
-    if (customRingtone) {
-        localStorage.setItem('customRingtone', customRingtone);
-    }
+    // 新しい着信音設定の保存
+    localStorage.setItem('currentRingtoneType', currentRingtoneType);
+    localStorage.setItem('currentRingtoneId', currentRingtoneId);
+
+    // 発信音設定の保存 (既存)
     if (customDialtone) {
         localStorage.setItem('customDialtone', customDialtone);
     }
@@ -1803,6 +2033,510 @@ function playCustomSound(audioData) {
     } catch (error) {
         console.error('音声作成エラー:', error);
         showNotification('音声データが無効です', 'error');
+    }
+}
+
+// === Tone.jsを使った音源生成関数群 ===
+
+// デフォルトトーン
+async function playDefaultTone() {
+    const synth = new Tone.Oscillator(440, "sine").toDestination();
+    synth.start();
+    synth.stop("+0.2");
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const synth2 = new Tone.Oscillator(440, "sine").toDestination();
+    synth2.start();
+    synth2.stop("+0.2");
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const synth3 = new Tone.Oscillator(440, "sine").toDestination();
+    synth3.start();
+    synth3.stop("+0.2");
+}
+
+// ベル1 - シンプルなベル
+async function playBell1() {
+    const bell = new Tone.MetalSynth().toDestination();
+    bell.triggerAttackRelease("C5", "8n");
+    await new Promise(resolve => setTimeout(resolve, 800));
+    bell.triggerAttackRelease("C5", "8n");
+}
+
+// ベル2 - 和音ベル
+async function playBell2() {
+    const bell = new Tone.FMSynth().toDestination();
+    bell.triggerAttackRelease("G4", "4n");
+    await new Promise(resolve => setTimeout(resolve, 200));
+    bell.triggerAttackRelease("C5", "4n");
+    await new Promise(resolve => setTimeout(resolve, 600));
+    bell.triggerAttackRelease("G4", "4n");
+    await new Promise(resolve => setTimeout(resolve, 200));
+    bell.triggerAttackRelease("C5", "4n");
+}
+
+// チャーチベル
+async function playChurchBell() {
+    const bell = new Tone.MetalSynth({
+        frequency: 200,
+        envelope: { attack: 0.001, decay: 1.4, sustain: 0.2, release: 1.4 },
+        harmonicity: 5.1,
+        modulationIndex: 32,
+        resonance: 4000,
+        octaves: 1.5
+    }).toDestination();
+
+    bell.triggerAttackRelease("C4", "2n");
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    bell.triggerAttackRelease("G4", "2n");
+}
+
+// チャイム1
+async function playChime1() {
+    const chime = new Tone.FMSynth({
+        harmonicity: 3,
+        modulationIndex: 10,
+        oscillator: { type: "sine" },
+        envelope: { attack: 0.01, decay: 0.5, sustain: 0.2, release: 0.5 }
+    }).toDestination();
+
+    const notes = ["C5", "E5", "G5", "C6"];
+    for (let i = 0; i < notes.length; i++) {
+        chime.triggerAttackRelease(notes[i], "8n");
+        await new Promise(resolve => setTimeout(resolve, 300));
+    }
+}
+
+// チャイム2
+async function playChime2() {
+    const chime = new Tone.AMSynth().toDestination();
+    const melody = [
+        { note: "C5", duration: "8n" },
+        { note: "D5", duration: "8n" },
+        { note: "E5", duration: "8n" },
+        { note: "F5", duration: "8n" },
+        { note: "G5", duration: "4n" }
+    ];
+
+    for (const { note, duration } of melody) {
+        chime.triggerAttackRelease(note, duration);
+        await new Promise(resolve => setTimeout(resolve, 200));
+    }
+}
+
+// ウィンドチャイム
+async function playWindChime() {
+    const chime = new Tone.MetalSynth().toDestination();
+    const notes = ["F4", "A4", "C5", "F5", "A5"];
+
+    for (let i = 0; i < 8; i++) {
+        const randomNote = notes[Math.floor(Math.random() * notes.length)];
+        chime.triggerAttackRelease(randomNote, "16n");
+        await new Promise(resolve => setTimeout(resolve, 150 + Math.random() * 100));
+    }
+}
+
+// 鳥のさえずり
+async function playBirdSong() {
+    const bird = new Tone.Oscillator().toDestination();
+    bird.frequency.setValueAtTime(800, 0);
+    bird.start();
+
+    // チュンチュンの模倣
+    for (let i = 0; i < 3; i++) {
+        bird.frequency.setValueAtTime(800, Tone.now() + i * 0.3);
+        bird.frequency.exponentialRampToValueAtTime(1200, Tone.now() + i * 0.3 + 0.1);
+        bird.frequency.exponentialRampToValueAtTime(600, Tone.now() + i * 0.3 + 0.2);
+    }
+
+    bird.stop("+1");
+}
+
+// 雨音
+async function playRainSound() {
+    const noise = new Tone.Noise("pink").toDestination();
+    const filter = new Tone.Filter(800, "lowpass").toDestination();
+    noise.connect(filter);
+
+    noise.start();
+    noise.stop("+2");
+}
+
+// 波音
+async function playWaveSound() {
+    const wave = new Tone.Oscillator().toDestination();
+    wave.frequency.setValueAtTime(80, 0);
+    wave.start();
+
+    // 波のような周期的な変化
+    for (let i = 0; i < 3; i++) {
+        wave.frequency.exponentialRampToValueAtTime(120, Tone.now() + i * 0.8 + 0.4);
+        wave.frequency.exponentialRampToValueAtTime(60, Tone.now() + i * 0.8 + 0.8);
+    }
+
+    wave.stop("+2.5");
+}
+
+// シンセ1
+async function playSynth1() {
+    const synth = new Tone.Synth().toDestination();
+    const notes = ["C4", "E4", "G4", "C5"];
+
+    for (let i = 0; i < notes.length; i++) {
+        synth.triggerAttackRelease(notes[i], "8n");
+        await new Promise(resolve => setTimeout(resolve, 150));
+    }
+}
+
+// シンセ2
+async function playSynth2() {
+    const synth = new Tone.FMSynth({
+        harmonicity: 8,
+        modulationIndex: 2,
+    }).toDestination();
+
+    synth.triggerAttackRelease("A4", "4n");
+    await new Promise(resolve => setTimeout(resolve, 300));
+    synth.triggerAttackRelease("A5", "4n");
+}
+
+// ビープ
+async function playBeep() {
+    const beep = new Tone.Oscillator(1000, "square").toDestination();
+    for (let i = 0; i < 3; i++) {
+        beep.start();
+        beep.stop("+0.1");
+        await new Promise(resolve => setTimeout(resolve, 200));
+    }
+}
+
+// クラシック1 - エリーゼのために風
+async function playClassic1() {
+    const piano = new Tone.Synth().toDestination();
+    const melody = [
+        "E5", "D#5", "E5", "D#5", "E5", "B4", "D5", "C5", "A4"
+    ];
+
+    for (let i = 0; i < melody.length; i++) {
+        piano.triggerAttackRelease(melody[i], "8n");
+        await new Promise(resolve => setTimeout(resolve, 200));
+    }
+}
+
+// メヌエット
+async function playMenuet() {
+    const piano = new Tone.Synth().toDestination();
+    const melody = [
+        { note: "G4", duration: "4n" },
+        { note: "A4", duration: "8n" },
+        { note: "B4", duration: "8n" },
+        { note: "C5", duration: "4n" },
+        { note: "B4", duration: "4n" },
+        { note: "A4", duration: "4n" }
+    ];
+
+    for (const { note, duration } of melody) {
+        piano.triggerAttackRelease(note, duration);
+        await new Promise(resolve => setTimeout(resolve, 300));
+    }
+}
+
+// === ドラッグ&ドロップ機能 ===
+
+function dragOverHandler(ev) {
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = "copy";
+}
+
+function dragEnterHandler(ev) {
+    ev.preventDefault();
+    document.getElementById('uploadArea').classList.add('drag-over');
+}
+
+function dragLeaveHandler(ev) {
+    ev.preventDefault();
+    if (!ev.currentTarget.contains(ev.relatedTarget)) {
+        document.getElementById('uploadArea').classList.remove('drag-over');
+    }
+}
+
+function dropHandler(ev) {
+    ev.preventDefault();
+    document.getElementById('uploadArea').classList.remove('drag-over');
+
+    const files = ev.dataTransfer.files;
+    if (files.length > 0) {
+        handleFileUpload(files);
+    }
+}
+
+// ファイルアップロード処理
+function handleFileUpload(files) {
+    Array.from(files).forEach(file => {
+        // ファイルサイズチェック（10MB以下）
+        if (file.size > 10 * 1024 * 1024) {
+            showNotification(`${file.name}: ファイルサイズが大きすぎます（10MB以下）`, 'error');
+            return;
+        }
+
+        // 音声ファイルかチェック
+        if (!file.type.startsWith('audio/')) {
+            showNotification(`${file.name}: 音声ファイルを選択してください`, 'error');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const customRingtone = {
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                name: file.name.replace(/\.[^/.]+$/, ""), // 拡張子を除去
+                data: e.target.result,
+                size: file.size,
+                type: file.type,
+                uploadDate: Date.now()
+            };
+
+            customRingtones.push(customRingtone);
+            saveCustomRingtones();
+            renderCustomRingtones();
+            showNotification(`${file.name} をアップロードしました 🎵`);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// === 音声合成機能 ===
+
+function testVoiceSynthesis() {
+    const message = document.getElementById('voiceMessage').value.trim();
+    const voiceIndex = document.getElementById('voiceSelect').value;
+
+    if (!message) {
+        showNotification('メッセージを入力してください', 'error');
+        return;
+    }
+
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(message);
+
+        if (voiceIndex && availableVoices[voiceIndex]) {
+            utterance.voice = availableVoices[voiceIndex];
+        }
+
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.volume = 0.8;
+
+        speechSynthesis.speak(utterance);
+        showNotification('音声合成をテスト中...', 'success');
+    } else {
+        showNotification('音声合成がサポートされていません', 'error');
+    }
+}
+
+function saveVoiceRingtone() {
+    const message = document.getElementById('voiceMessage').value.trim();
+    const voiceIndex = document.getElementById('voiceSelect').value;
+
+    if (!message) {
+        showNotification('メッセージを入力してください', 'error');
+        return;
+    }
+
+    if ('speechSynthesis' in window) {
+        const voiceRingtone = {
+            id: 'voice_' + Date.now(),
+            name: `音声: ${message.substr(0, 20)}...`,
+            type: 'voice',
+            message: message,
+            voiceIndex: voiceIndex,
+            uploadDate: Date.now()
+        };
+
+        customRingtones.push(voiceRingtone);
+        saveCustomRingtones();
+        renderCustomRingtones();
+        showNotification('音声メッセージを着信音として保存しました 🗣️');
+    } else {
+        showNotification('音声合成がサポートされていません', 'error');
+    }
+}
+
+// === メロディ自動生成機能 ===
+
+function generateMelody() {
+    const melodyType = document.getElementById('melodyType').value;
+
+    if (typeof Tone === 'undefined') {
+        showNotification('Tone.jsが読み込まれていません', 'error');
+        return;
+    }
+
+    // メロディ生成
+    generatedMelody = createMelodyByType(melodyType);
+    showNotification(`${melodyType}メロディを生成しました 🎼`);
+}
+
+function createMelodyByType(type) {
+    const scales = {
+        classic: ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"],
+        electronic: ["C3", "C#3", "D#3", "F3", "G3", "A#3", "C4"],
+        nature: ["G3", "A3", "B3", "D4", "E4", "G4", "A4"],
+        chime: ["C4", "E4", "G4", "C5", "E5"],
+        bell: ["F4", "A4", "C5", "F5"]
+    };
+
+    const scale = scales[type] || scales.classic;
+    const length = 6 + Math.floor(Math.random() * 4); // 6-10音符
+    const melody = [];
+
+    for (let i = 0; i < length; i++) {
+        const note = scale[Math.floor(Math.random() * scale.length)];
+        const duration = Math.random() > 0.5 ? "4n" : "8n";
+        melody.push({ note, duration, delay: i * 300 });
+    }
+
+    return { type, melody };
+}
+
+async function testGeneratedMelody() {
+    if (!generatedMelody) {
+        showNotification('まずメロディを生成してください', 'error');
+        return;
+    }
+
+    await Tone.start();
+    const synth = new Tone.Synth().toDestination();
+
+    for (const { note, duration, delay } of generatedMelody.melody) {
+        setTimeout(() => {
+            synth.triggerAttackRelease(note, duration);
+        }, delay);
+    }
+
+    showNotification('生成されたメロディを再生中...', 'success');
+}
+
+function saveGeneratedMelody() {
+    if (!generatedMelody) {
+        showNotification('まずメロディを生成してください', 'error');
+        return;
+    }
+
+    const melodyRingtone = {
+        id: 'melody_' + Date.now(),
+        name: `生成メロディ: ${generatedMelody.type}`,
+        type: 'generated',
+        melody: generatedMelody,
+        uploadDate: Date.now()
+    };
+
+    customRingtones.push(melodyRingtone);
+    saveCustomRingtones();
+    renderCustomRingtones();
+    showNotification('生成メロディを着信音として保存しました 🎼');
+}
+
+// === 着信音選択機能 ===
+
+function selectBuiltinRingtone(id) {
+    currentRingtoneType = 'builtin';
+    currentRingtoneId = id;
+    updateCurrentRingtoneDisplay();
+    saveSoundSettings();
+    renderRingtoneUI();
+    showNotification(`着信音を ${builtinRingtones.find(r => r.id === id)?.name} に設定しました 🔔`);
+}
+
+function selectCustomRingtone(id) {
+    currentRingtoneType = 'custom';
+    currentRingtoneId = id;
+    updateCurrentRingtoneDisplay();
+    saveSoundSettings();
+    renderRingtoneUI();
+
+    const ringtone = customRingtones.find(r => r.id === id);
+    showNotification(`着信音を ${ringtone?.name} に設定しました 🎵`);
+}
+
+function playCustomRingtoneById(id) {
+    const ringtone = customRingtones.find(r => r.id === id);
+    if (!ringtone) return;
+
+    if (ringtone.type === 'voice') {
+        // 音声合成の再生
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(ringtone.message);
+            if (ringtone.voiceIndex && availableVoices[ringtone.voiceIndex]) {
+                utterance.voice = availableVoices[ringtone.voiceIndex];
+            }
+            speechSynthesis.speak(utterance);
+        }
+    } else if (ringtone.type === 'generated') {
+        // 生成メロディの再生
+        playGeneratedMelodyData(ringtone.melody);
+    } else {
+        // 通常の音声ファイルの再生
+        playCustomSound(ringtone.data);
+    }
+}
+
+async function playGeneratedMelodyData(melodyData) {
+    await Tone.start();
+    const synth = new Tone.Synth().toDestination();
+
+    for (const { note, duration, delay } of melodyData.melody) {
+        setTimeout(() => {
+            synth.triggerAttackRelease(note, duration);
+        }, delay);
+    }
+}
+
+function deleteCustomRingtone(id) {
+    const ringtone = customRingtones.find(r => r.id === id);
+    if (!ringtone) return;
+
+    if (confirm(`${ringtone.name} を削除しますか？`)) {
+        customRingtones = customRingtones.filter(r => r.id !== id);
+
+        // 削除された着信音が現在選択されている場合はデフォルトに戻す
+        if (currentRingtoneType === 'custom' && currentRingtoneId === id) {
+            currentRingtoneType = 'builtin';
+            currentRingtoneId = 'default';
+            updateCurrentRingtoneDisplay();
+        }
+
+        saveCustomRingtones();
+        saveSoundSettings();
+        renderRingtoneUI();
+        showNotification(`${ringtone.name} を削除しました 🗑️`);
+    }
+}
+
+function updateCurrentRingtoneDisplay() {
+    const displayElement = document.getElementById('currentRingtone');
+    if (!displayElement) return;
+
+    if (currentRingtoneType === 'builtin') {
+        const ringtone = builtinRingtones.find(r => r.id === currentRingtoneId);
+        displayElement.textContent = ringtone ? `${ringtone.icon} ${ringtone.name}` : 'デフォルト';
+    } else if (currentRingtoneType === 'custom') {
+        const ringtone = customRingtones.find(r => r.id === currentRingtoneId);
+        displayElement.textContent = ringtone ? `🎵 ${ringtone.name}` : 'カスタム';
+    }
+}
+
+function testCurrentRingtone() {
+    if (currentRingtoneType === 'builtin') {
+        playBuiltinRingtone(currentRingtoneId);
+    } else if (currentRingtoneType === 'custom') {
+        playCustomRingtoneById(currentRingtoneId);
+    }
+}
+
+// 既存のuploadRingtone関数を更新
+function uploadRingtone(event) {
+    const files = event.target.files;
+    if (files.length > 0) {
+        handleFileUpload(files);
     }
 }
 
